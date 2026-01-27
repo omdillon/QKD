@@ -1,0 +1,936 @@
+import numpy as np
+from art import text2art
+from qiskit import QuantumCircuit
+from qiskit_aer import AerSimulator
+from qiskit_aer.noise import NoiseModel, depolarizing_error, pauli_error, amplitude_damping_error, phase_damping_error
+
+# data visualisation libraries
+import matplotlib.pyplot as plt
+import seaborn as sns
+from typing import Dict, Tuple, List
+from tqdm import tqdm  # Progress bar library
+
+# hello test
+
+# Console art width
+global console_width
+console_width = 85
+
+class BB84:
+    """
+    Enhanced BB84 Quantum Key Distribution Protocol Simulation
+
+    Features:
+    - Multiple realistic noise models (Depolarizing, Bit-flip, Phase-damping, Amplitude-damping)
+    - Eavesdropper (Eve) simulation with variable interception rates
+    - Distance-dependent photon loss modelling (fibre attenuation)
+    - Secure key rate calculation (Devetak-Winter bound)
+    - Classical error injection at Bob's measurement (Detector noise, Jitter, Dark counts)
+
+    Attributes:
+        n_qubits (int): Number of qubits to transmit
+        interception_rate (float): Probability of Eve intercepting a photon (0.0 - 1.0)
+        noise_type (str): Type of quantum channel noise ('none', 'depolarizing', etc.)
+        noise_strength (float): Strength of the quantum noise (0.0 - 1.0)
+        distance_km (float): Length of the fibre optic channel in km
+        verbose (bool): Whether to print detailed logs to the console
+    """
+
+    def __init__(self,
+                 n_qubits: int = 100,
+                 interception_rate: float = 0.0,
+                 noise_type: str = 'none',
+                 noise_strength: float = 0.01,
+                 distance_km: float = 25.0,
+                 verbose: bool = True):
+        
+        self.n_qubits = n_qubits
+        self.interception_rate = interception_rate
+        self.noise_type = noise_type
+        self.noise_strength = noise_strength
+        self.distance_km = distance_km
+        self.verbose = verbose
+
+        # --- CLASSICAL NOISE CONSTANTS ---
+        # These errors are constant regardless of the AER noise mode.
+        # You can adjust these probabilities here.
+        self.DETECTOR_NOISE_PROB = 0.005  # 0.5% probability
+        self.TIMING_JITTER_PROB = 0.002   # 0.2% probability
+        self.DARK_COUNT_PROB = 0.001      # 0.1% probability
+
+        # Calculate fibre transmission efficiency
+        # Standard single-mode fibre: ~0.2 dB/km at 1550nm (telecom C-band)
+        self.ATTENUATION_DB_PER_KM = 0.2
+        total_loss_db = self.ATTENUATION_DB_PER_KM * self.distance_km
+        self.transmission_efficiency = 10 ** (-total_loss_db / 10)
+
+        # Initialise backend with optional noise model
+        self.backend_sim = self._configure_backend()
+
+        # Protocol data storage
+        self.alice_bits = []
+        self.alice_bases = []
+        self.bob_bases = []
+        self.bob_results = []
+        self.eve_presence = []
+        self.sifted_key_alice = []
+        self.sifted_key_bob = []
+        self.match_indices = []
+        self.calculated_qber = 0.0
+        self.secure_key_rate = 0.0
+        self.photons_lost = 0
+
+    def _configure_backend(self) -> AerSimulator:
+        """
+        Configure the Qiskit Aer backend with the specified noise model.
+
+        Returns:
+            AerSimulator with appropriate noise configuration
+        """
+        noise_model = NoiseModel()
+        
+        if self.noise_type == 'none':
+            return AerSimulator()
+        elif self.noise_type == 'depolarizing':
+            # Depolarising error affects all axes
+            error = depolarizing_error(self.noise_strength, 1)
+            noise_model.add_all_qubit_quantum_error(error, ['x', 'h', 'id'])
+            if self.verbose:
+                print(f"[Noise Model] Depolarising channel with strength {self.noise_strength}")
+        elif self.noise_type == 'bitflip':
+            error = pauli_error([('X', self.noise_strength), ('I', 1 - self.noise_strength)])
+            noise_model.add_all_qubit_quantum_error(error, ['x', 'h', 'id'])
+            if self.verbose:
+                print(f"[Noise Model] Bit-flip channel with strength {self.noise_strength}")
+        elif self.noise_type == 'phaseflip':
+            error = pauli_error([('Z', self.noise_strength), ('I', 1 - self.noise_strength)])
+            noise_model.add_all_qubit_quantum_error(error, ['x', 'h', 'id'])
+            if self.verbose:
+                print(f"[Noise Model] Phase-flip channel with strength {self.noise_strength}")
+        elif self.noise_type == 'amplitude_damping':
+            error = amplitude_damping_error(self.noise_strength)
+            noise_model.add_all_qubit_quantum_error(error, ['x', 'h', 'id'])
+            if self.verbose:
+                print(f"[Noise Model] Amplitude damping with strength {self.noise_strength}")
+        elif self.noise_type == 'phase_damping':
+            error = phase_damping_error(self.noise_strength)
+            noise_model.add_all_qubit_quantum_error(error, ['x', 'h', 'id'])
+            if self.verbose:
+                print(f"[Noise Model] Phase damping with strength {self.noise_strength}")
+        
+        return AerSimulator(noise_model=noise_model)
+
+    # --- CLASSICAL NOISE SUBROUTINES ---
+
+    def applyDetectorNoise(self, bit: int) -> int:
+        """
+        Simulate detector noise.
+        Randomly flips the measured bit based on detector error probability.
+        """
+        if np.random.rand() < self.DETECTOR_NOISE_PROB:
+            return 1 - bit
+        return bit
+
+    def applyTimingJitter(self, bit: int) -> int:
+        """
+        Simulate timing jitter.
+        Randomly flips the bit due to timing misalignment.
+        """
+        if np.random.rand() < self.TIMING_JITTER_PROB:
+            return 1 - bit
+        return bit
+
+    def applyDarkCounts(self, bit: int) -> int:
+        """
+        Simulate dark counts.
+        Randomly randomises the result (simulating a false click event).
+        """
+        if np.random.rand() < self.DARK_COUNT_PROB:
+            # Dark count acts as a random background event, effectively randomising the result
+            return np.random.randint(2)
+        return bit
+
+    # --- PROTOCOL STEPS ---
+
+    def alicePreparation(self) -> List[QuantumCircuit]:
+        """
+        Step 1: Alice generates random bits and bases, then prepares quantum states.
+        
+        BB84 Encoding:
+        - Bit=0, Basis=Z(0): |0⟩ (computational basis)
+        - Bit=1, Basis=Z(0): |1⟩
+        - Bit=0, Basis=X(1): |+⟩ = (|0⟩ + |1⟩)/√2 (Hadamard basis)
+        - Bit=1, Basis=X(1): |−⟩ = (|0⟩ - |1⟩)/√2
+
+        Returns:
+            List of QuantumCircuit objects representing the photon stream
+        """
+        if self.verbose:
+            print(f"\n{'='*console_width}")
+            print(f"STEP 1: Alice prepares {self.n_qubits} qubits")
+            print(f"{'='*console_width}")
+
+        self.alice_bits = np.random.randint(2, size=self.n_qubits)
+        self.alice_bases = np.random.randint(2, size=self.n_qubits)
+        qubit_stream = []
+
+        for i in range(self.n_qubits):
+            qc = QuantumCircuit(1, 1)
+            # Apply bit encoding
+            if self.alice_bits[i] == 1:
+                qc.x(0)
+            # Apply basis encoding (Hadamard for X basis)
+            if self.alice_bases[i] == 1:
+                qc.h(0)
+            qubit_stream.append(qc)
+
+        if self.verbose:
+            print(f"[SUCCESS] Encoded {self.n_qubits} qubits")
+            print(f" Sample bits: {self.alice_bits[:10]}")
+            print(f" Sample bases: {self.alice_bases[:10]} (0=Z, 1=X)")
+            
+        return qubit_stream
+
+    def quantumChannel(self, qubit_stream: List[QuantumCircuit]) -> List[QuantumCircuit]:
+        """
+        Step 2: Simulate the quantum channel with eavesdropper (Eve), noise, and photon loss.
+        
+        Eve's Attack Strategy (Intercept-Resend):
+        1. Intercepts photon with probability `interception_rate`
+        2. Randomly chooses a measurement basis (no knowledge of Alice's choice)
+        3. Measures the qubit (collapses superposition)
+        4. Prepares a fresh qubit in the measured state
+        5. Resends to Bob
+
+        Photon Loss:
+        - Models exponential fibre attenuation at 1550nm wavelength
+        - Typical loss: 0.2 dB/km in standard single-mode fibre
+        - Lost photons are marked as None (no detection at Bob's end)
+
+        Returns:
+            List of QuantumCircuit objects after channel transmission (or None for lost photons)
+        """
+        if self.verbose:
+            print(f"\n{'='*console_width}")
+            print(f"STEP 2: Quantum Channel Transmission")
+            print(f"{'='*console_width}")
+            print(f"Channel distance: {self.distance_km} km")
+            print(f"Fibre attenuation: {self.ATTENUATION_DB_PER_KM} dB/km")
+            print(f"Transmission efficiency: {self.transmission_efficiency*100:.2f}%")
+            print(f"Eve interception rate: {self.interception_rate*100:.1f}%")
+            print(f"Noise model: {self.noise_type} (strength: {self.noise_strength})")
+
+        intercepted_stream = []
+        self.eve_presence = [False] * self.n_qubits
+        self.photons_lost = 0
+        eve_count = 0
+
+        for i, qc in enumerate(qubit_stream):
+            # First: Model photon loss due to fibre attenuation
+            if np.random.rand() > self.transmission_efficiency:
+                # Photon lost in fibre - Bob receives nothing
+                intercepted_stream.append(None)
+                self.photons_lost += 1
+                continue
+
+            # Photon survived transmission - now check for Eve's interception
+            if np.random.rand() < self.interception_rate:
+                self.eve_presence[i] = True
+                eve_count += 1
+                
+                # Eve chooses a random basis
+                eve_basis = np.random.randint(2)
+                if eve_basis == 1:
+                    qc.h(0)
+                
+                # Eve measures
+                qc.measure(0, 0)
+                instance = self.backend_sim.run(qc, shots=1, memory=True)
+                result = instance.result().get_memory()[0]
+                
+                # Eve prepares new qubit to resend
+                new_qc = QuantumCircuit(1, 1)
+                if result == '1':
+                    new_qc.x(0)
+                if eve_basis == 1:
+                    new_qc.h(0)
+                
+                intercepted_stream.append(new_qc)
+            else:
+                intercepted_stream.append(qc)
+
+        if self.verbose:
+            print(f"[SUCCESS] Transmission complete")
+            print(f" Photons lost: {self.photons_lost}/{self.n_qubits} ({self.photons_lost/self.n_qubits*100:.1f}%)")
+            print(f" Eve intercepted: {eve_count}/{self.n_qubits} ({eve_count/self.n_qubits*100:.1f}%)")
+            print(f" Photons received: {self.n_qubits - self.photons_lost}/{self.n_qubits}")
+            
+        return intercepted_stream
+
+    def bobMeasurement(self, incoming_stream: List[QuantumCircuit]):
+        """
+        Step 3: Bob receives qubits and measures them using randomly chosen bases.
+        
+        Bob has no knowledge of:
+        - Alice's bit values
+        - Alice's basis choices
+        - Whether Eve intercepted
+        - Which photons were lost (he only knows he didn't detect some)
+
+        This method now includes CLASSICAL ERROR INJECTION directly after measurement.
+        """
+        if self.verbose:
+            print(f"\n{'='*85}")
+            print(f"STEP 3: Bob measures incoming qubits")
+            print(f"{'='*85}")
+
+        self.bob_bases = np.random.randint(2, size=self.n_qubits)
+        self.bob_results = []
+
+        for i, qc in enumerate(incoming_stream):
+            if qc is None:
+                # Photon was lost - Bob detects nothing
+                self.bob_results.append(None)
+                continue
+
+            # Apply basis choice (Hadamard for X basis)
+            if self.bob_bases[i] == 1:
+                qc.h(0)
+            
+            qc.measure(0, 0)
+            
+            # Run simulation for this qubit
+            instance = self.backend_sim.run(qc, shots=1, memory=True)
+            measured_bit = int(instance.result().get_memory()[0])
+            
+            # ---------------------------------------------------------
+            # CLASSICAL ERROR INJECTION
+            # Apply noise sources sequentially using the subroutines.
+            # Comment out any line below to disable that specific noise source.
+            # ---------------------------------------------------------
+            
+            measured_bit = self.applyDetectorNoise(measured_bit)
+            
+            measured_bit = self.applyTimingJitter(measured_bit)
+            
+            measured_bit = self.applyDarkCounts(measured_bit)
+            
+            # ---------------------------------------------------------
+
+            self.bob_results.append(measured_bit)
+
+        successful_detections = sum(1 for r in self.bob_results if r is not None)
+        if self.verbose:
+            print(f"[SUCCESS] Bob measurement complete")
+            print(f" Successful detections: {successful_detections}/{self.n_qubits}")
+            sample_res = [r for r in self.bob_results[:15] if r is not None][:10]
+            print(f" Sample results: {sample_res}")
+            print(f" Sample bases: {self.bob_bases[:10]} (0=Z, 1=X)")
+
+    def calculate_secure_key_rate(self) -> float:
+        """
+        Calculate the final secure key rate using the Devetak-Winter bound.
+        
+        Formula:
+        R_secure = n_sifted * [1 - f_EC * h(QBER) - h(QBER)]
+        
+        Where:
+        - n_sifted: length of sifted key
+        - f_EC: error correction efficiency (typically 1.1-1.22, we use 1.16)
+        - h(x): binary entropy function
+        - QBER: quantum bit error rate
+        """
+        def binary_entropy(x):
+            """Binary entropy function for Shannon information theory."""
+            if x <= 0 or x >= 1:
+                return 0
+            return -x * np.log2(x) - (1 - x) * np.log2(1 - x)
+            
+        # Error correction efficiency (realistic value for CASCADE or LDPC codes)
+        f_EC = 1.16
+        
+        n_sifted = len(self.sifted_key_alice)
+        QBER = self.calculated_qber
+        
+        # Devetak-Winter bound for secure key rate
+        secure_rate = n_sifted * (1 - f_EC * binary_entropy(QBER) - binary_entropy(QBER))
+        
+        # Can't have negative secure key
+        self.secure_key_rate = max(0, secure_rate)
+        return self.secure_key_rate
+
+    def postProcessing(self) -> Tuple[float, int, int]:
+        """
+        Step 4: Sifting Phase and QBER Calculation.
+        
+        Classical Communication (Public Channel):
+        1. Alice and Bob announce their basis choices (but NOT bit values)
+        2. They discard all positions where bases didn't match OR photons were lost
+        3. The remaining bits form the "sifted key"
+        4. They sacrifice a random subset to calculate QBER
+        5. If QBER > 11%, they abort (eavesdropper detected)
+        6. Calculate final secure key rate using Devetak-Winter bound
+        """
+        if self.verbose:
+            print(f"\n{'='*85}")
+            print(f"STEP 4: Sifting and QBER Calculation")
+            print(f"{'='*85}")
+
+        self.sifted_key_alice = []
+        self.sifted_key_bob = []
+        self.match_indices = []
+        
+        for i in range(self.n_qubits):
+            # Only keep if bases matched AND Bob detected the photon
+            if self.alice_bases[i] == self.bob_bases[i] and self.bob_results[i] is not None:
+                self.sifted_key_alice.append(self.alice_bits[i])
+                self.sifted_key_bob.append(self.bob_results[i])
+                self.match_indices.append(i)
+                
+        total_sifted = len(self.sifted_key_alice)
+        if total_sifted == 0:
+            if self.verbose:
+                print("[ERROR] No bases matched or all photons lost!")
+            return 0.0, 0, 0
+            
+        # Errors are now injected directly during bobMeasurement.
+        # We simply count mismatches in the sifted key.
+        
+        errors = sum(1 for k in range(total_sifted) 
+                     if self.sifted_key_alice[k] != self.sifted_key_bob[k])
+        
+        qber = errors / total_sifted
+        self.calculated_qber = qber
+        
+        # Calculate secure key rate
+        secure_key_bits = self.calculate_secure_key_rate()
+        
+        if self.verbose:
+            print(f"\n[Protocol Statistics]")
+            print(f" Total qubits sent: {self.n_qubits}")
+            print(f" Photons lost: {self.photons_lost} ({self.photons_lost/self.n_qubits*100:.1f}%)")
+            print(f" Photons received: {self.n_qubits - self.photons_lost}")
+            print(f" Basis match rate: {total_sifted/(self.n_qubits - self.photons_lost)*100:.1f}% of received")
+            print(f" Sifted key length: {total_sifted} bits")
+            print(f" Errors detected: {errors}")
+            print(f" Calculated QBER: {qber:.4f} ({qber*100:.2f}%)")
+            
+            # Final Security Analysis
+            SECURITY_THRESHOLD = 0.11
+            print(f"\n[Security Analysis]")
+            print(f" Safety threshold: {SECURITY_THRESHOLD*100:.0f}%")
+            
+            if qber > SECURITY_THRESHOLD:
+                print(f" Status: INSECURE - QBER too high!")
+                print(f" Recommendation: Abort key exchange. Possible eavesdropper detected.")
+                print(f" Secure key bits: 0 (protocol aborted)")
+            else:
+                print(f" Status: SECURE - QBER within safe limits")
+                print(f" Secure key bits: {secure_key_bits:.0f} bits")
+                print(f" Key rate efficiency: {secure_key_bits/total_sifted*100:.1f}% of sifted key")
+                print(f" Recommendation: Proceed with privacy amplification & error correction.")
+
+        return qber, total_sifted, errors
+
+    def executeSim(self) -> Dict:
+        """
+        Execute the full BB84 protocol simulation.
+        Returns a dictionary containing all simulation results for analysis.
+        """
+        qubits = self.alicePreparation()
+        qubits = self.quantumChannel(qubits)
+        self.bobMeasurement(qubits)
+        qber, sifted_length, errors = self.postProcessing()
+        
+        return {
+            'qber': qber,
+            'sifted_length': sifted_length,
+            'errors': errors,
+            'eve_interceptions': sum(self.eve_presence),
+            'photons_lost': self.photons_lost,
+            'transmission_efficiency': self.transmission_efficiency,
+            'secure_key_rate': self.secure_key_rate,
+            'alice_bits': self.alice_bits,
+            'alice_bases': self.alice_bases,
+            'bob_bases': self.bob_bases,
+            'bob_results': self.bob_results,
+            'sifted_key_alice': self.sifted_key_alice,
+            'sifted_key_bob': self.sifted_key_bob,
+            'match_indices': self.match_indices
+        }
+
+# =============================================================================
+# VISUALISATION SUITE
+# =============================================================================
+
+class BB84Interface:
+    """
+    Comprehensive visualisation suite for BB84 protocol analysis.
+    """
+    
+    @staticmethod
+    def plot_qber_vs_interception(n_trials: int = 20, n_qubits: int = 200, distance_km: float = 25):
+        """
+        Plot 1: QBER vs Eve's Interception Rate
+        Demonstrates the theoretical 25% QBER limit when Eve intercepts 100%.
+        This is the signature of quantum eavesdropping in BB84.
+        """
+        print("\n" + "="*console_width)
+        print("VISUALISATION 1: QBER vs Interception Rate")
+        print("="*console_width)
+        
+        interception_rates = np.linspace(0, 1, 11)
+        qber_values = []
+        qber_std = []
+        
+        for rate in tqdm(interception_rates, desc="Processing interception rates", unit="rate"):
+            qbers = []
+            for _ in tqdm(range(n_trials), desc=f" Rate {rate*100:.0f}%", leave=False, unit="trial"):
+                sim = BB84(
+                    n_qubits=n_qubits,
+                    interception_rate=rate,
+                    distance_km=distance_km,
+                    verbose=False
+                )
+                result = sim.executeSim()
+                qbers.append(result['qber'])
+            qber_values.append(np.mean(qbers))
+            qber_std.append(np.std(qbers))
+            
+        print("Rendering plot...")
+        plt.figure(figsize=(10, 6))
+        plt.errorbar(interception_rates * 100, np.array(qber_values) * 100, 
+                     yerr=np.array(qber_std) * 100, 
+                     marker='o', capsize=5, linewidth=2, markersize=8, 
+                     label='Simulated QBER')
+        
+        theoretical = 0.25 * interception_rates * 100
+        plt.plot(interception_rates * 100, theoretical, 'r--', 
+                 linewidth=2, label='Theoretical (25% limit)')
+        
+        plt.axhline(y=11, color='orange', linestyle=':', linewidth=2, 
+                   label='Security Threshold (11%)')
+        
+        plt.xlabel('Eve Interception Rate (%)', fontsize=12, fontweight='bold')
+        plt.ylabel('Quantum Bit Error Rate - QBER (%)', fontsize=12, fontweight='bold')
+        plt.title(f'BB84 Protocol: QBER vs Eavesdropper Interception Rate\n' +
+                 f'(Distance: {distance_km}km, {n_trials} trials, {n_qubits} qubits each)', 
+                 fontsize=14, fontweight='bold')
+        plt.grid(True, alpha=0.3)
+        plt.legend(fontsize=11)
+        plt.tight_layout()
+        print("[SUCCESS] Plot rendered")
+        plt.show()
+
+    @staticmethod
+    def plot_basis_matching_distribution(n_simulations: int = 100, n_qubits: int = 100, distance_km: float = 25):
+        """
+        Plot 2: Sifted Key Length Distribution
+        Shows the statistical distribution of basis matching (should be ~50% of received photons).
+        """
+        print("\n" + "="*console_width)
+        print("VISUALISATION 2: Sifted Key Length Distribution")
+        print("="*console_width)
+        
+        sifted_lengths = []
+        
+        for _ in tqdm(range(n_simulations), desc="Running simulations", unit="sim"):
+            sim = BB84(
+                n_qubits=n_qubits,
+                interception_rate=0.0,
+                distance_km=distance_km,
+                verbose=False
+            )
+            result = sim.executeSim()
+            sifted_lengths.append(result['sifted_length'])
+            
+        print("Rendering plot...")
+        plt.figure(figsize=(10, 6))
+        plt.hist(sifted_lengths, bins=20, edgecolor='black', alpha=0.7, color='skyblue')
+        
+        sim_temp = BB84(n_qubits=n_qubits, distance_km=distance_km, verbose=False)
+        expected = n_qubits * sim_temp.transmission_efficiency * 0.5
+        
+        plt.axvline(x=expected, color='red', linestyle='--', linewidth=2, 
+                   label=f'Expected (with loss): {expected:.0f}')
+        plt.axvline(x=np.mean(sifted_lengths), color='green', linestyle='-', linewidth=2, 
+                   label=f'Actual Mean: {np.mean(sifted_lengths):.1f}')
+        
+        plt.xlabel('Sifted Key Length (bits)', fontsize=12, fontweight='bold')
+        plt.ylabel('Frequency', fontsize=12, fontweight='bold')
+        plt.title(f'Distribution of Sifted Key Lengths\n({n_simulations} simulations, {n_qubits} qubits, {distance_km}km distance)', 
+                 fontsize=14, fontweight='bold')
+        plt.legend(fontsize=11)
+        plt.grid(True, alpha=0.3, axis='y')
+        plt.tight_layout()
+        print("[SUCCESS] Plot rendered")
+        plt.show()
+
+    @staticmethod
+    def plot_basis_choice_heatmap(distance_km: float = 25):
+        """
+        Plot 3: Basis Choice Heatmap (Single Simulation)
+        Visualises Alice's and Bob's basis choices across the transmission.
+        """
+        print("\n" + "="*console_width)
+        print("VISUALISATION 3: Basis Choice Heatmap")
+        print("="*console_width)
+        print("Running simulation...")
+        
+        sim = BB84(
+            n_qubits=100,
+            interception_rate=0.5,
+            distance_km=distance_km,
+            verbose=False
+        )
+        result = sim.executeSim()
+        
+        print("Rendering heatmaps...")
+        alice_bases = np.array(result['alice_bases'])
+        bob_bases = np.array(result['bob_bases'])
+        
+        # Create a 10x10 grid for visualisation
+        grid_size = 10
+        alice_grid = alice_bases[:100].reshape(grid_size, grid_size)
+        bob_grid = bob_bases[:100].reshape(grid_size, grid_size)
+        match_grid = (alice_grid == bob_grid).astype(int)
+        
+        fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+        
+        sns.heatmap(alice_grid, ax=axes[0], cmap='RdYlGn', cbar_kws={'label': '0=Z, 1=X'}, 
+                    linewidths=0.5, linecolor='gray', square=True)
+        axes[0].set_title("Alice's Basis Choices", fontweight='bold')
+        axes[0].set_xlabel('Qubit Column')
+        axes[0].set_ylabel('Qubit Row')
+        
+        sns.heatmap(bob_grid, ax=axes[1], cmap='RdYlGn', cbar_kws={'label': '0=Z, 1=X'}, 
+                    linewidths=0.5, linecolor='gray', square=True)
+        axes[1].set_title("Bob's Basis Choices", fontweight='bold')
+        axes[1].set_xlabel('Qubit Column')
+        axes[1].set_ylabel('Qubit Row')
+        
+        sns.heatmap(match_grid, ax=axes[2], cmap='coolwarm', cbar_kws={'label': '0=Mismatch, 1=Match'}, 
+                    linewidths=0.5, linecolor='gray', square=True)
+        axes[2].set_title("Basis Agreement\n(Match = Kept in Sifted Key)", fontweight='bold')
+        axes[2].set_xlabel('Qubit Column')
+        axes[2].set_ylabel('Qubit Row')
+        
+        plt.suptitle(f'BB84 Basis Selection Analysis (100 qubits, {distance_km}km, 50% Eve interception)', 
+                    fontsize=14, fontweight='bold', y=1.02)
+        plt.tight_layout()
+        print("[SUCCESS] Plot rendered")
+        plt.show()
+
+    @staticmethod
+    def plot_noise_model_comparison(n_qubits: int = 200, distance_km: float = 25):
+        """
+        Plot 4: Noise Model Comparison
+        Compares QBER for different quantum noise models at varying strengths.
+        """
+        print("\n" + "="*console_width)
+        print("VISUALISATION 4: Noise Model Comparison")
+        print("="*console_width)
+        
+        noise_types = ['depolarizing', 'bitflip', 'amplitude_damping', 'phase_damping']
+        noise_strengths = np.linspace(0.01, 0.15, 8)
+        
+        plt.figure(figsize=(12, 7))
+        
+        for noise_type in tqdm(noise_types, desc="Testing noise models", unit="model"):
+            qber_values = []
+            for strength in tqdm(noise_strengths, desc=f" {noise_type}", leave=False, unit="strength"):
+                sim = BB84(
+                    n_qubits=n_qubits,
+                    interception_rate=0.0,
+                    noise_type=noise_type,
+                    noise_strength=strength,
+                    distance_km=distance_km,
+                    verbose=False
+                )
+                result = sim.executeSim()
+                qber_values.append(result['qber'])
+                
+            plt.plot(noise_strengths * 100, np.array(qber_values) * 100, 
+                     marker='o', linewidth=2, markersize=6, label=noise_type.replace('_', ' ').title())
+        
+        print("Rendering plot...")
+        plt.axhline(y=11, color='red', linestyle='--', linewidth=2, 
+                   label='Security Threshold (11%)', alpha=0.7)
+        
+        plt.xlabel('Noise Strength Parameter (%)', fontsize=12, fontweight='bold')
+        plt.ylabel('Quantum Bit Error Rate - QBER (%)', fontsize=12, fontweight='bold')
+        plt.title(f'BB84 QBER vs Noise Model Type\n(Distance: {distance_km}km, No eavesdropper, {n_qubits} qubits)', 
+                 fontsize=14, fontweight='bold')
+        plt.legend(fontsize=10, loc='upper left')
+        plt.grid(True, alpha=0.3)
+        plt.tight_layout()
+        print("[SUCCESS] Plot rendered")
+        plt.show()
+
+    @staticmethod
+    def plot_security_threshold_analysis(n_trials: int = 50, n_qubits: int = 150, distance_km: float = 25):
+        """
+        Plot 5: Security Threshold Visualisation
+        Shows multiple simulation runs and highlights which fall above/below 11% threshold.
+        """
+        print("\n" + "="*console_width)
+        print("VISUALISATION 5: Security Threshold Analysis")
+        print("="*console_width)
+        
+        interception_rates = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
+        
+        fig, ax = plt.subplots(figsize=(12, 6))
+        
+        for rate in tqdm(interception_rates, desc="Testing interception rates", unit="rate"):
+            qber_samples = []
+            for _ in tqdm(range(n_trials), desc=f" Rate {rate*100:.0f}%", leave=False, unit="trial"):
+                sim = BB84(
+                    n_qubits=n_qubits,
+                    interception_rate=rate,
+                    distance_km=distance_km,
+                    verbose=False
+                )
+                result = sim.executeSim()
+                qber_samples.append(result['qber'] * 100)
+            
+            # Colour code: Green for secure, Red for insecure
+            colors = ['green' if q < 11 else 'red' for q in qber_samples]
+            x_positions = [rate * 100] * n_trials
+            
+            ax.scatter(x_positions, qber_samples, alpha=0.6, s=30, c=colors)
+            
+        print("Rendering plot...")
+        ax.axhline(y=11, color='orange', linestyle='--', linewidth=3, 
+                  label='Security Threshold (11%)', zorder=5)
+        
+        ax.set_xlabel('Eve Interception Rate (%)', fontsize=12, fontweight='bold')
+        ax.set_ylabel('QBER (%)', fontsize=12, fontweight='bold')
+        ax.set_title(f'BB84 Security Threshold Analysis\n' + 
+                    f'(Distance: {distance_km}km, {n_trials} trials per rate, {n_qubits} qubits)\n' +
+                    'Green = Secure | Red = Insecure', 
+                    fontsize=14, fontweight='bold')
+        ax.grid(True, alpha=0.3)
+        ax.legend(fontsize=11)
+        plt.tight_layout()
+        print("[SUCCESS] Plot rendered")
+        plt.show()
+
+    @staticmethod
+    def plot_distance_vs_key_rate(distances_km: List[float] = None, n_qubits: int = 1000, n_trials: int = 10):
+        """
+        Plot 6: Secure Key Rate vs Distance
+        Shows how distance affects the final usable key rate due to photon loss.
+        This is critical for understanding QKD system limitations.
+        """
+        print("\n" + "="*console_width)
+        print("VISUALISATION 6: Secure Key Rate vs Distance")
+        print("="*console_width)
+        
+        if distances_km is None:
+            distances_km = np.linspace(0, 100, 11) # 0 to 100 km
+            
+        key_rates = []
+        key_rates_std = []
+        
+        for distance in tqdm(distances_km, desc="Testing distances", unit="km"):
+            rates = []
+            for _ in tqdm(range(n_trials), desc=f" {distance:.0f}km", leave=False, unit="trial"):
+                sim = BB84(
+                    n_qubits=n_qubits,
+                    interception_rate=0.0, # No Eve for this analysis
+                    distance_km=distance,
+                    verbose=False
+                )
+                result = sim.executeSim()
+                rates.append(result['secure_key_rate'])
+            
+            key_rates.append(np.mean(rates))
+            key_rates_std.append(np.std(rates))
+            
+        print("Rendering plot...")
+        plt.figure(figsize=(10, 6))
+        plt.errorbar(distances_km, key_rates, yerr=key_rates_std, 
+                     marker='o', capsize=5, linewidth=2, markersize=8, 
+                     color='blue', label='Simulated Key Rate')
+        
+        plt.xlabel('Channel Distance (km)', fontsize=12, fontweight='bold')
+        plt.ylabel('Secure Key Rate (bits)', fontsize=12, fontweight='bold')
+        plt.title(f'BB84 Secure Key Rate vs Fibre Distance\n' +
+                 f'({n_qubits} qubits transmitted, {n_trials} trials per distance)', 
+                 fontsize=14, fontweight='bold')
+        plt.grid(True, alpha=0.3)
+        plt.legend(fontsize=11)
+        plt.tight_layout()
+        print("[SUCCESS] Plot rendered")
+        plt.show()
+
+
+# =============================================================================
+# INTERACTIVE PARAMETER SELECTION SYSTEM
+# =============================================================================
+
+def interactive_simulation():
+    """
+    Interactive command-line interface for configuring and running BB84 simulations.
+    """
+    print("\n" + "="*console_width)
+    print(text2art("BB84 Simulator", font="smslant"))
+    print("="*console_width)
+    print("\nWelcome! This tool simulates the BB84 QKD protocol with configurable")
+    print("parameters including eavesdropper presence and noise models.\n")
+
+    # Parameter 1: Number of qubits
+    while True:
+        try:
+            n_qubits = int(input("Enter number of qubits to transmit [100-1000, default=200]: ") or "200")
+            if 100 <= n_qubits <= 1000:
+                break
+            print(" [WARNING] Please enter a value between 100 and 1000")
+        except ValueError:
+            print(" [WARNING] Invalid input. Please enter an integer.")
+
+    # Parameter 2: Distance
+    print("\n" + "-"*console_width)
+    print("Fibre Optic Channel Distance:")
+    print("   0 km = No loss (ideal channel)")
+    print("  25 km = Urban QKD network")
+    print("  50 km = Metropolitan area")
+    print(" 100 km = Long-distance (challenging)")
+    
+    while True:
+        try:
+            distance_km = float(input("Enter fibre distance in km [0-150, default=25]: ") or "25")
+            if 0 <= distance_km <= 150:
+                break
+            print(" [WARNING] Please enter a value between 0 and 150")
+        except ValueError:
+            print(" [WARNING] Invalid input. Please enter a number.")
+
+    # Parameter 3: Interception rate
+    print("\n" + "-"*console_width)
+    print("Eve's Interception Rate:")
+    print(" 0.0 = Secure channel (no eavesdropping)")
+    print(" 0.5 = Eve intercepts 50% of qubits")
+    print(" 1.0 = Full eavesdropping attack")
+    
+    while True:
+        try:
+            interception_rate = float(input("Enter interception rate [0.0-1.0, default=0.0]: ") or "0.0")
+            if 0.0 <= interception_rate <= 1.0:
+                break
+            print(" [WARNING] Please enter a value between 0.0 and 1.0")
+        except ValueError:
+            print(" [WARNING] Invalid input. Please enter a decimal number.")
+
+    # Parameter 4: Noise model
+    print("\n" + "-"*console_width)
+    print("Available Noise Models:")
+    print(" 1. none               - Ideal quantum channel (classical noise still present)")
+    print(" 2. depolarizing       - Uniform Pauli noise (X, Y, Z)")
+    print(" 3. bitflip            - Bit-flip errors (X gate)")
+    print(" 4. phaseflip          - Phase errors (Z gate)")
+    print(" 5. amplitude_damping  - Photon loss / energy dissipation")
+    print(" 6. phase_damping      - Decoherence without energy loss")
+    
+    noise_map = {
+        '1': 'none', '2': 'depolarizing', '3': 'bitflip', 
+        '4': 'phaseflip', '5': 'amplitude_damping', '6': 'phase_damping'
+    }
+    
+    while True:
+        choice = input("Select noise model [1-6, default=1]: ") or "1"
+        if choice in noise_map:
+            noise_type = noise_map[choice]
+            break
+        print(" [WARNING] Invalid choice. Please enter a number between 1 and 6.")
+
+    # Parameter 5: Noise strength (if applicable)
+    noise_strength = 0.0
+    if noise_type != 'none':
+        print("\n" + "-"*console_width)
+        print("Noise Strength Parameter:")
+        print(" 0.01 = 1% noise (weak)")
+        print(" 0.05 = 5% noise (moderate)")
+        print(" 0.10 = 10% noise (strong)")
+        
+        while True:
+            try:
+                noise_strength = float(input("Enter noise strength [0.0-0.20, default=0.05]: ") or "0.05")
+                if 0.0 <= noise_strength <= 0.20:
+                    break
+                print(" [WARNING] Please enter a value between 0.0 and 0.20")
+            except ValueError:
+                print(" [WARNING] Invalid input. Please enter a decimal number.")
+
+    # REMOVED: Parameter 6 (Target QBER) - completely redundant now.
+
+    # Run simulation
+    print("\n" + "="*console_width)
+    print("RUNNING SIMULATION...")
+    print("="*console_width)
+    
+    sim = BB84(
+        n_qubits=n_qubits,
+        interception_rate=interception_rate,
+        noise_type=noise_type,
+        noise_strength=noise_strength,
+        distance_km=distance_km,
+        verbose=True
+    )
+    
+    result = sim.executeSim()
+    
+    # Visualisation menu loop
+    viz = BB84Interface()
+    while True:
+        print("\n" + "="*console_width)
+        print("VISUALISATION MENU")
+        print("="*console_width)
+        print("\nAvailable visualisations:")
+        print(" 1. QBER vs Interception Rate")
+        print(" 2. Sifted Key Distribution")
+        print(" 3. Basis Choice Heatmap")
+        print(" 4. Noise Model Comparison")
+        print(" 5. Security Threshold Analysis")
+        print(" 6. Secure Key Rate vs Distance")
+        print(" 7. Generate ALL visualisations")
+        print(" 0. Exit programme")
+        
+        viz_choice = input("\nEnter your choice [0-7]: ") or "0"
+        
+        if viz_choice == '0':
+            break
+        elif viz_choice == '1':
+            viz.plot_qber_vs_interception(distance_km=distance_km)
+        elif viz_choice == '2':
+            viz.plot_basis_matching_distribution(distance_km=distance_km)
+        elif viz_choice == '3':
+            viz.plot_basis_choice_heatmap(distance_km=distance_km)
+        elif viz_choice == '4':
+            viz.plot_noise_model_comparison(distance_km=distance_km)
+        elif viz_choice == '5':
+            viz.plot_security_threshold_analysis(distance_km=distance_km)
+        elif viz_choice == '6':
+            viz.plot_distance_vs_key_rate()
+        elif viz_choice == '7':
+            print("\nGenerating all visualisations...")
+            viz.plot_qber_vs_interception(n_trials=15, distance_km=distance_km)
+            viz.plot_basis_matching_distribution(n_simulations=80, distance_km=distance_km)
+            viz.plot_basis_choice_heatmap(distance_km=distance_km)
+            viz.plot_noise_model_comparison(distance_km=distance_km)
+            viz.plot_security_threshold_analysis(n_trials=30, distance_km=distance_km)
+            viz.plot_distance_vs_key_rate()
+            print("\n[SUCCESS] All visualisations rendered!")
+        else:
+            print(" [WARNING] Invalid choice. Please enter a number between 0 and 7.")
+
+    print("\n" + "="*console_width)
+    print(text2art("EXITING"))
+    print("="*console_width + "\n")
+
+# =============================================================================
+# MAIN EXECUTION
+# =============================================================================
+if __name__ == "__main__":
+    # Run interactive mode
+    interactive_simulation()
