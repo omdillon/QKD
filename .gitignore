@@ -1,0 +1,23 @@
+# Large asset folders excluded from git (files exceed git size limits)
+literature/
+planning/
+poster/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

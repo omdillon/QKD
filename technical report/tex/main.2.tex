@@ -1,0 +1,734 @@
+\documentclass[10pt, a4paper]{report}
+% IEEE body text = 10pt. Using report class for chapter support.
+
+% =============================================================================
+% PACKAGES
+% =============================================================================
+
+% --- Encoding & Language ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[british]{babel}
+
+% --- Typography ---
+% IEEE uses Times Roman throughout
+\usepackage{mathptmx}              % Times Roman for text + math
+\usepackage[scaled=0.90]{helvet}   % Helvetica (sans-serif fallback)
+\usepackage{courier}               % Courier for monospace / code
+
+% --- Page Geometry (IEEE A4 spec) ---
+% IEEE A4: side = 13mm, top = 19mm, bottom = 43mm
+% Single-column width = 184mm
+\usepackage[
+    a4paper,
+    left=13mm,
+    right=13mm,
+    top=19mm,
+    bottom=43mm,
+    headheight=12pt,
+    headsep=10pt,
+    footskip=20pt
+]{geometry}
+
+% --- Line Spacing ---
+% IEEE body text: 10pt font / 12pt line spacing = factor of 1.2
+% LaTeX default for 10pt is ~12pt baselineskip, so single spacing is correct.
+\usepackage{setspace}
+\singlespacing
+
+% --- Headers & Footers ---
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\footnotesize\nouppercase{\leftmark}}
+\fancyhead[R]{\footnotesize\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancypagestyle{plain}{%
+    \fancyhf{}
+    \fancyfoot[C]{\footnotesize\thepage}
+    \renewcommand{\headrulewidth}{0pt}
+}
+
+% --- Graphics & Figures ---
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{subcaption}
+
+% IEEE Figure captions: 8pt, 9pt line spacing, centred below figure
+% IEEE Table captions: 8pt, 9pt line spacing, centred above table, small caps label
+\usepackage[
+    font={footnotesize, singlespacing},  % 8pt at 10pt base
+    labelfont=bf,
+    labelsep=period,
+    justification=centering,
+    tableposition=top,
+    figureposition=bottom
+]{caption}
+
+% Override table caption label to use small caps "TABLE" with Roman numerals
+\DeclareCaptionLabelFormat{ieeetable}{\textsc{Table~#2}}
+\captionsetup[table]{labelformat=ieeetable, labelsep=newline, justification=centering}
+\renewcommand{\thetable}{\Roman{table}}
+
+% Figure numbering: Arabic, label "Fig."
+\DeclareCaptionLabelFormat{ieeefigure}{Fig.~#2}
+\captionsetup[figure]{labelformat=ieeefigure, labelsep=period, justification=centering}
+
+% --- Tables ---
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{tabularx}
+
+% --- Mathematics ---
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{bm}
+
+% --- Colours ---
+\usepackage{xcolor}
+\definecolor{codeBackground}{RGB}{248,248,250}
+\definecolor{codeFrame}{RGB}{190,190,200}
+\definecolor{codeKeyword}{RGB}{0,80,160}
+\definecolor{codeComment}{RGB}{80,128,80}
+\definecolor{codeString}{RGB}{160,48,48}
+\definecolor{codeNumber}{RGB}{140,140,150}
+\definecolor{linkBlue}{RGB}{0,60,120}
+
+% --- Code Listings ---
+\usepackage{listings}
+\lstdefinestyle{ieeeCode}{
+    backgroundcolor=\color{codeBackground},
+    frame=single,
+    rulecolor=\color{codeFrame},
+    framesep=3pt,
+    xleftmargin=6pt,
+    xrightmargin=4pt,
+    % IEEE code should be small --- 8pt matches footnote/caption size
+    basicstyle=\ttfamily\scriptsize\linespread{1.0}\selectfont,
+    keywordstyle=\color{codeKeyword}\bfseries,
+    commentstyle=\color{codeComment}\itshape,
+    stringstyle=\color{codeString},
+    numberstyle=\tiny\color{codeNumber}\ttfamily,
+    numbers=left,
+    numbersep=6pt,
+    breaklines=true,
+    breakatwhitespace=false,
+    showstringspaces=false,
+    captionpos=b,
+    tabsize=4,
+    columns=flexible,
+    keepspaces=true,
+    aboveskip=10pt,
+    belowskip=6pt,
+    abovecaptionskip=4pt,
+    belowcaptionskip=2pt,
+    literate={-}{-}1
+}
+\lstset{style=ieeeCode}
+\renewcommand{\lstlistingname}{Listing}
+\renewcommand{\lstlistlistingname}{List of Listings}
+
+% --- Algorithms ---
+\usepackage[ruled, vlined, linesnumbered]{algorithm2e}
+\SetAlgoLined
+\SetKwComment{Comment}{$\triangleright$\ }{}
+\SetAlCapSkip{6pt}
+% Match algorithm caption size to IEEE caption spec (8pt)
+\SetAlCapFnt{\footnotesize}
+\SetAlCapNameFnt{\footnotesize\bfseries}
+
+% --- Hyperlinks ---
+\usepackage[
+    colorlinks=true,
+    linkcolor=black,
+    citecolor=linkBlue,
+    urlcolor=linkBlue,
+    bookmarks=true,
+    bookmarksnumbered=true,
+    pdfauthor={Om Kalyan},
+    pdftitle={Beyond Classical Cryptography: Simulating and Benchmarking QKD},
+    pdfsubject={BEng Dissertation},
+    pdfkeywords={QKD, BB84, B92, E91, Qiskit, Post-Quantum Cryptography}
+]{hyperref}
+\usepackage[noabbrev, capitalise]{cleveref}
+
+% --- Bibliography ---
+% IEEE references: 8pt, 9pt line spacing, bracketed Arabic numerals
+\usepackage{cite}
+
+% --- Lists ---
+\usepackage{enumitem}
+\setlist{nosep, leftmargin=*}
+
+% --- Paragraph formatting ---
+% IEEE uses indented paragraphs with no extra inter-paragraph space
+\setlength{\parindent}{1em}
+\setlength{\parskip}{0pt}
+
+% =============================================================================
+% HEADING STYLES --- IEEE Conference Manuscript Format Definition
+% =============================================================================
+\usepackage{titlesec}
+
+% --- CHAPTER ─────────────────────────────────────────────────────────────────
+% Dissertation addition (IEEE conf. papers have no chapters).
+% Styled as a prominent centred heading, consistent with IEEE aesthetic.
+% Uses 14pt bold small caps, centred, with "CHAPTER I" label above.
+\titleformat{\chapter}[display]
+    {\normalfont\fontsize{14}{16}\bfseries\scshape\centering}
+    {\MakeUppercase{\chaptertitlename}~\thechapter}
+    {6pt}
+    {\fontsize{14}{16}\selectfont\bfseries}
+\titlespacing*{\chapter}{0pt}{-10pt}{20pt}
+
+% --- SECTION (IEEE "Section Heads (1)") ──────────────────────────────────────
+% Spec: 10pt regular, 14pt line spacing, centred,
+%       Roman numerals (I., II., ...), CAPITALS / SMALL CAPS
+\renewcommand{\thesection}{\Roman{section}}
+\titleformat{\section}
+    {\normalfont\fontsize{10}{14}\selectfont\scshape\centering}
+    {\thesection.}{0.5em}{}
+\titlespacing*{\section}{0pt}{14pt}{8pt}
+
+% --- SUBSECTION (IEEE "Heading 2") ──────────────────────────────────────────
+% Spec: 10pt italic, 12pt line spacing, left-justified,
+%       Capital alpha numerals (A., B., ...)
+\renewcommand{\thesubsection}{\Alph{subsection}}
+\titleformat{\subsection}
+    {\normalfont\fontsize{10}{12}\selectfont\itshape}
+    {\thesubsection.}{0.5em}{}
+\titlespacing*{\subsection}{0pt}{10pt}{4pt}
+
+% --- SUBSUBSECTION (IEEE "Heading 3") ───────────────────────────────────────
+% Spec: 10pt italic, 12pt line spacing, left-justified,
+%       Arabic numeral + right paren, run-in, indent 1em
+\renewcommand{\thesubsubsection}{\arabic{subsubsection}}
+\titleformat{\subsubsection}[runin]
+    {\normalfont\fontsize{10}{12}\selectfont\itshape}
+    {\thesubsubsection)}{0.5em}{}[:]
+\titlespacing*{\subsubsection}{1em}{8pt}{0.5em}
+
+% --- PARAGRAPH (IEEE "Heading 4") ───────────────────────────────────────────
+% Spec: 10pt italic, left-justified,
+%       Lowercase alpha + right paren + colon, run-in, indent 2em
+\renewcommand{\theparagraph}{\alph{paragraph}}
+\titleformat{\paragraph}[runin]
+    {\normalfont\fontsize{10}{12}\selectfont\itshape}
+    {\theparagraph)}{0.5em}{}[:]
+\titlespacing*{\paragraph}{2em}{6pt}{0.5em}
+
+% Enable numbering depth through paragraph level
+\setcounter{secnumdepth}{4}
+\setcounter{tocdepth}{3}
+
+% =============================================================================
+% CUSTOM COMMANDS (QKD Notation)
+% =============================================================================
+\newcommand{\ket}[1]{\ensuremath{|#1\rangle}}
+\newcommand{\bra}[1]{\ensuremath{\langle#1|}}
+\newcommand{\braket}[2]{\ensuremath{\langle#1|#2\rangle}}
+\newcommand{\QBER}{\ensuremath{\mathrm{QBER}}}
+\newcommand{\keyrate}{\ensuremath{R_{\mathrm{sec}}}}
+
+% =============================================================================
+% FOOTNOTE SIZE (IEEE: 8pt, 9pt line spacing)
+% =============================================================================
+\renewcommand{\footnotesize}{\fontsize{8}{9}\selectfont}
+
+% =============================================================================
+% DOCUMENT
+% =============================================================================
+\begin{document}
+
+% ─────────────────────────────────────────────────────────────────────────────
+% TITLE PAGE
+% ─────────────────────────────────────────────────────────────────────────────
+\begin{titlepage}
+    \centering
+    \thispagestyle{empty}
+    \vspace*{3cm}
+
+    % --- Title: IEEE spec = 24pt regular, 28pt line spacing, centred ---
+    {\fontsize{28}{32}\selectfont
+    Beyond Classical Cryptography:\par
+    Simulating \& Benchmarking\par
+    Quantum Key Distribution\par}
+
+    \vspace{1.0cm}
+
+    % --- Author Name: IEEE spec = 11pt regular, 12pt line spacing, centred ---
+    {\fontsize{14}{15}\selectfont
+    Om Kalyan\par}
+
+    \vspace{0.5cm}
+
+    {\fontsize{10}{11}\selectfont
+    230733440\par}
+
+    \vspace{1.0cm}
+
+    % --- Author Affiliation: IEEE spec = 10pt regular, 11pt line spacing, centred ---
+    {\fontsize{10}{11}\selectfont
+    A dissertation submitted in partial fulfilment of the requirements\\
+    for the degree of\par}
+
+    \vspace{0.4cm}
+
+    {\fontsize{10}{11}\selectfont\bfseries
+    Bachelor of Engineering\\
+    in Electronics \& Computer Engineering\par}
+
+    \vspace{1.0cm}
+
+    % --- University Crest ---
+    \includegraphics[width=0.24\textwidth]{misc images/ncl logo vector.png}
+
+    \vspace{1.0cm}
+
+    % --- Institution: 11pt to match author name tier ---
+    {\fontsize{11}{13}\selectfont
+    School of Engineering\\
+    Newcastle University\par}
+
+    \vspace{0.6cm}
+
+    % --- Date ---
+    {\fontsize{10}{11}\selectfont 2026\par}
+
+\end{titlepage}
+
+% ─────────────────────────────────────────────────────────────────────────────
+% FRONT MATTER
+% ─────────────────────────────────────────────────────────────────────────────
+\pagenumbering{roman}
+
+% --- Abstract ---
+\clearpage
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+% IEEE Abstract: 9pt bold, "Abstract---" bold italic, 10pt line spacing
+{\fontsize{9}{10}\selectfont\bfseries
+\textit{Abstract}---Quantum algorithms such as Shor's factorisation threaten public-key cryptography systems like RSA and ECC, which rely on computational hardness for security. Quantum Key Distribution (QKD) offers a fundamentally different security paradigm: rather than relying on computational complexity, QKD derives information-theoretic security from the laws of quantum mechanics, ensuring privacy regardless of adversarial computing power.
+
+This project presents a simulation and benchmarking platform implementing three QKD protocols---BB84, B92, and E91---in Python\,3 using the Qiskit SDK. The platform compares prepare-and-measure approaches against entanglement-based key distribution, evaluating protocol performance first under ideal channel conditions to establish theoretical baselines, then under realistic constraints including eavesdropper presence, quantum bit error rates, and channel losses.\par
+}
+
+% --- Acknowledgements ---
+\clearpage
+\chapter*{Acknowledgements}
+\addcontentsline{toc}{chapter}{Acknowledgements}
+
+I would like to thank my supervisors Martin Johnston and Oktay \c{C}etinkaya for their guidance\ldots
+
+% --- Table of Contents ---
+\clearpage
+\tableofcontents
+
+% --- List of Figures ---
+\clearpage
+\listoffigures
+\addcontentsline{toc}{chapter}{List of Figures}
+
+% --- List of Tables ---
+\clearpage
+\listoftables
+\addcontentsline{toc}{chapter}{List of Tables}
+
+% --- List of Listings ---
+\clearpage
+\lstlistoflistings
+\addcontentsline{toc}{chapter}{List of Listings}
+
+% --- List of Algorithms ---
+\clearpage
+\listofalgorithms
+\addcontentsline{toc}{chapter}{List of Algorithms}
+
+% ─────────────────────────────────────────────────────────────────────────────
+% MAIN CONTENT
+% ─────────────────────────────────────────────────────────────────────────────
+\clearpage
+\pagenumbering{arabic}
+
+% ═══════════════════════════════════════════════════════════════════════════════
+\chapter{Introduction}
+% ═══════════════════════════════════════════════════════════════════════════════
+
+\section{A Brief History of Cryptology}
+
+% TODO: A brief introduction to QKD --- why it is needed, who benefits
+% from the technology, and where it is deployed in the real world.
+
+% this should talk abput classical cryptography first. an overview of why we need secure systems
+Since the dawn of days, humans have sought ways to communicate in secret. It only takes a glance back at the ancient societies of Mesopotamia, India, and China to understand where the foundations of cryptology were laid some 3000 years ago \cite{Kahn1967Code}. Whether it be the early use of Substitution or Transposition schemes, these early cryptographic systems established the core principle that would dominate cryptology for millennia: security through the obscurity of the method itself. 
+
+Back in the 9th century, humanity experienced the first major analytical breakthrough when the Arab polymath Al-Kindi developed frequency analysis, a technique of cryptanalysis capable of breaking any monoalphabetic substitution cipher of the age by exploiting the statistical patterns of language itself \cite{AlKadi1992}. This initiated a centuries-long cycle of invention and defeat that defined the field of cryptology, with newly designed ciphers broken by increasingly sophisticated cryptanalysis. Fast-forward to the 16th century, Blaise de Vigen\`ere developed on the work of Giovan Bellaso to introduce a polyalphabetic cipher that would go on to secure the world for 300 years, until the great minds of Babbage and Kasiski developed statistical methods to compromise the scheme in the 19th century \cite{Singh1999, Bauer2021}.
+
+The dawn of the Second World War transformed cryptology from a niche discipline into a strategic imperative. Repeating this "Tug of War", Germany's Engima, a rotor-based electromechanical cipher, was famously broken at Bletchley Park by the Father of Theoretical Computer Science - Alan Turing, and his colleagues \cite{Hodges2014}. Despite this technological revolution, security through simplicity was demonstrated in the Pacific theatre by the US Marine Corps' deployment of Navajo Code Talkers who used their native language as the basis for a battlefield cipher. A truly innovative system that rested security on the extreme phonetic distance between the Navajo and Japanese language, that remained unbroken until its declassification in 1968 \cite{Huffman2000}. 
+
+Looking to the post-war era, Claude Shannon redefined cryptography using rigorous mathematical foundations in his initially classified 1945 paper on secrecy systems, introducing concepts such as confusion, diffusion, and perfect secrecy \cite{Shannon1945}. This revolutionary framework, later publicly published in 1948, fueled the development of the modern cryptographic infrastructure we rely on today: the Data Encryption Standard (DES) in 1977, the RSA public-key cryptosystem in 1978, and the Advanced Encryption Standard (AES) in 2001 \cite{Shannon1948, DiffieHellman1976, RSA1978}. Peeling back the layers of essentially all the digital communications we use today, from online banking and e-commerce to government and military networks, we find these algorithms underpinning the security on which we rely. 
+
+\section{The Quantum Threat to Classical Cryptography}
+
+% TODO: Shor's algorithm, the quantum computing roadmap, and the need for
+% information-theoretically secure key exchange.
+The security of modern public-key cryptography schemes such as RSA and elliptic curve cryptography (ECC) rests on the computational hardness of problems like integer factorisation and the discrete logarithm. In 1994, Peter Shor demonstrated that a sufficiently powerful quantum computer could solve both problems in polynomial time, rendering these systems fundamentally insecure \cite{Shor1997}. While large-scale fault-tolerant quantum computers do not yet exist, the threat of a "harvest now, decrypt later" attack does exist, where adversaries can intercept and store encrypted communications today, with the intention of decrypting them once quantum hardware matures \cite{NIST}.
+
+To combat these threats, we turn towards two complementary approaches to security. Post-Quantum Cryptography (PQC) replaces vulnerable algorithms with quantum-resistant mathematical problems such as those presented by NIST (FIPS 203, 204, 205) \cite{NIST}. Alternatively, Quantum Key Distribution (QKD) approaches the problem of security at a fundamental level. Where classical systems rely on computational hardness, QKD protocols such as BB84, B92, and E91 exploit the laws of quantum mechanics to distribute encryption keys with information-theoretic security. By leveraging the fact that any eavesdropping attempt inevitably induces a detectable disturbance to a quantum state, QKD enables communicating parties to both detect interception and discard compromised material. This shift from mathematical to physical security renders QKD uniquely resilient against future advances in both classical and quantum cryptanalysis \cite{BB84, B92, E91}.
+
+
+\newpage
+\section{Aims \& Objectives}
+
+% TODO: Outline the project aims and objectives.
+% Describe the overall research message and trajectory.
+The aim of this project is to design, implement, and evaluate a modular simulation and benchmarking platform for discrete-variable Quantum Key Distribution protocols, enabling quantitative comparison of protocol performance under realistic channel conditions, eavesdropping attacks, and post-processing constraints. All simulations are conducted in Python using IBM's Qiskit framework and the Aer noise simulator, reflecting the simulation-only scope of this work in the absence of quantum communications hardware. The specific objectives are organised into six categories.
+
+\subsection{Literature Review \& Analytical Framework}
+
+\begin{enumerate}[label=\textbf{O1.\arabic*}, leftmargin=1.5cm]
+    \item Conduct a critical review of QKD protocol literature, covering the theoretical foundations of BB84 \cite{BB84}, B92 \cite{B92}, and E91 \cite{E91}, their respective security proofs, and known practical limitations. This review will establish the analytical framework and parameter choices (noise models, error correction efficiency, security bounds) used throughout the project.
+
+    \item Identify and document the key metrics by which QKD protocols are evaluated in the literature, such as: Quantum Bit Error Rate (QBER), sifted key rate, secure key rate, maximum tolerable error threshold, and sifting efficiency. These metrics will form the basis of all subsequent benchmarking.
+\end{enumerate}
+
+\subsection{Protocol Implementation}
+
+\begin{enumerate}[label=\textbf{O2.\arabic*}, leftmargin=1.5cm]
+    \item \textbf{BB84 (Four-State, Two-Basis):} Implement the BB84 protocol as the primary baseline simulation. The implementation models Alice's random bit and basis selection, qubit state preparation in the rectilinear ($Z$) or diagonal ($X$) basis, quantum transmission through a configurable noisy channel, Bob's random basis measurement, and public basis reconciliation (sifting). The implementation is considered complete when the sifting efficiency converges to the theoretically expected $\sim$50\% (matching bases occur with probability $1/2$) across repeated simulation runs. % refine with simualtions
+
+    \item \textbf{B92 (Two Non-Orthogonal States):} Implement Bennett's 1992 protocol as the primary comparative prepare and measure protocol, encoding bit values using only two non-orthogonal states ($|0\rangle$ and $|+\rangle$). Bob performs a measurement that can yield a conclusive result, an inconclusive result, or a photon loss event. The implementation is validated by confirming that the sifting efficiency converges to $\sim$25\% (lower than BB84 due to the additional inconclusive outcome) and that the QBER threshold falls below that of BB84, consistent with B92's reduced noise tolerance.
+
+    \item \textbf{E91 (Entanglement-Based - Stretch Objective):} Subject to a mid-project Go/No-Go decision based on progress against the critical path plan, implement Ekert's 1991 protocol. This models the generation and distribution of maximally entangled Bell pairs, independent random basis measurements from three orientations per party, key extraction from matching-basis outcomes, and eavesdropper detection via the CHSH inequality. The implementation is validated by confirming that the computed CHSH parameter $|S|$ converges to $2\sqrt{2} \approx 2.828$ in the absence of eavesdropping, and degrades towards the classical bound of 2 under increasing interception rate.
+\end{enumerate}
+
+\subsection{Channel Modelling and Eavesdropper Simulation}
+
+\begin{enumerate}[label=\textbf{O3.\arabic*}, leftmargin=1.5cm]
+    \item Model quantum channel impairments using Qiskit Aer's noise framework: depolarising noise (symmetric Pauli errors), bit-flip and phase-flip channels, amplitude damping (energy relaxation), and phase damping (decoherence without energy loss). Noise is applied exclusively to the quantum channel via an identity gate channel marker, not to local preparation or measurement operations, ensuring the simulation accurately represents a protocol where Alice's and Bob's local devices are trusted.
+
+    % may delete this assumption/ refine it make it more general as a result of lit review
+    \item Implement distance-dependent photon loss using standard single-mode fibre attenuation of 0.2$\sim$dB/km at 1550$\sim$nm, modelling transmission efficiency as $\eta = 10^{-\alpha d / 10}$ where $\alpha = 0.2\sim$dB/km and $d$ is the fibre distance. Simulate distances from 0 to at least 100$\sim$km in increments of 5$\sim$km to produce key rate versus distance curves for each protocol.
+
+    \item Implement an intercept-resend eavesdropping attack with a configurable interception probability $p \in [0, 1]$. Eve intercepts each qubit with probability $p$, measures in a randomly chosen basis, and re-transmits to Bob. Sweep the interception rate from 0\% to 100\% in increments of 10\% and record the resulting QBER for each protocol.
+
+    % also aspriational - make sure the simple system works first
+    \item Model classical receiver imperfections independently of the quantum noise, including detector dark count probability (0.1\%), timing jitter (0.2\%), and detector noise (0.5\%), parameterised with experimentally motivated values from published QKD system specifications.
+\end{enumerate}
+
+\subsection{Post-Processing and Secure Key Rate Analysis}
+
+\begin{enumerate}[label=\textbf{O4.\arabic*}, leftmargin=1.5cm]
+    \item Calculate the secure key rate using the GLLP formula \cite{GLLP2004}, incorporating the error correction efficiency factor $f_{EC} = 1.16$ corresponding to the CASCADE protocol \cite{Cascade1994}. This yields a practical BB84 QBER security threshold of $\sim$9.8\%, compared to the idealised 11\% Shor-Preskill bound at $f_{EC} = 1.0$ \cite{ShorPreskill2000}. Document and justify this distinction, as it has direct engineering significance for determining whether a given fibre link can sustain secure key generation.
+
+    \item Compute the mutual information quantities $I(A{:}B)$ (Alice-Bob) and $I(A{:}E)$ (Alice-Eve) as functions of QBER for both BB84 and B92. Identify the crossover point where $I(A{:}E) \geq I(A{:}B)$, beyond which no secret key can be extracted, and confirm this aligns with the GLLP-derived thresholds for each protocol.
+
+    \item Determine and compare the maximum tolerable QBER thresholds for BB84 ($\sim$9.8\% with $f_{EC} = 1.16$) and B92 ($\sim$6.5\%), quantifying the practical noise tolerance gap between the two prepare and measure protocols.
+\end{enumerate}
+
+\subsection{Verification, Validation, and Benchmarking Visualisation}
+
+\begin{enumerate}[label=\textbf{O5.\arabic*}, leftmargin=1.5cm]
+    \item \textbf{Verification against theoretical predictions.} Confirm that simulation outputs match known analytical results:
+    \begin{itemize}
+        \item BB84 sifting efficiency converges to 50\% ($\pm$2\%).
+        \item Full intercept-resend attack on BB84 produces QBER of $\sim$25\% ($\pm$2\%).
+        \item Secure key rate reaches zero at the GLLP-predicted QBER thresholds for each protocol.
+        \item B92 sifting efficiency converges to $\sim$25\%.
+    \end{itemize}
+    These checks serve as pass/fail criteria confirming that the simulation correctly implements the underlying quantum mechanics and post-processing mathematics.
+
+    % potential edit on where i may want to validate results
+    \item \textbf{Validation against published experimental data.} Compare simulated key rate versus distance curves against published experimental QKD demonstrations, including long-distance BB84 results \cite{Boaron2018} and metropolitan network deployments reported in recent survey literature \cite{Zhang2025}. The simulation is not expected to reproduce experimental results exactly (real systems include imperfections beyond the scope of this model), but the trends, orders of magnitude, and maximum operational distances should be broadly consistent. Discrepancies are documented and attributed to specific modelling assumptions.
+
+    \item \textbf{Benchmarking visualisation suite.} Develop a set of figures to present simulation results and protocol comparisons, including:
+    \begin{itemize}
+        \item QBER versus eavesdropper interception rate for each protocol.
+        \item Secure key rate versus fibre distance under realistic attenuation and $f_{EC} = 1.16$.
+        \item Noise model comparison showing QBER response across depolarising, bit-flip, amplitude damping, and phase damping channels at varying strengths.
+        \item Mutual information crossover plot ($I(A{:}B)$ vs.\ $I(A{:}E)$ vs.\ QBER).
+        \item Dual-parameter heatmap of secure key rate as a function of both distance and noise strength.
+        \item Qubit-attrition waterfall diagram tracing qubit loss from initial transmission through photon loss, basis mismatch, error correction overhead, and privacy amplification to the final secure key.
+        \item Multi-dimensional radar chart comparing BB84 and B92 across QBER tolerance, sifting efficiency, maximum secure distance, and eavesdropper sensitivity.
+    \end{itemize}
+\end{enumerate}
+
+\subsection{Real-World Feasibility and Broader Context}
+
+\begin{enumerate}[label=\textbf{O6.\arabic*}, leftmargin=1.5cm]
+    \item Evaluate the practical viability of BB84 and B92 over metropolitan fibre links ($\sim$10-50 km), identifying the distance and noise regimes in which each protocol sustains a positive secure key rate with $f_{EC} = 1.16$. Determine, for a given noise floor, the maximum deployment distance at which each protocol remains operational.
+
+    \item Contextualise the simulation results within the broader landscape of quantum-safe security, including the complementary roles of QKD and post-quantum cryptography (NIST FIPS 203/204/205), the "harvest now, decrypt later" threat model motivating near-term QKD deployment, and the economic and infrastructure barriers to adoption across sectors such as Research \& Development, Government, Banking \& Finance, Critical Infrastructure, Healthcare, and Emerging Industries.
+\end{enumerate}
+
+% ═══════════════════════════════════════════════════════════════════════════════
+\chapter{Literature Review}
+% ═══════════════════════════════════════════════════════════════════════════════
+
+% TODO: Review of QKD theory, protocol evolution, real-world deployments,
+% and positioning of this work relative to existing research.
+
+% repurpose the intro section into this paragraph
+\section{The Quantum Threat to Classical Cryptography}
+
+
+
+% sources explaining the principles for how QKD works
+\section{Quantum Mechanical Foundations}
+
+To achieve information-theoretic security, every QKD protocol rests on a small set of quantum mechanical principles. This section introduces the five principles that are exploited by the BB84, B92, and E91 protocols. The treatment of these foundations follows Nielsen and Chuang \cite{QKDbible}, and the pedagogical review by \cite{Scarani2009}. 
+
+\subsection{Qubits \& Superposition}
+Consider a classical bit taking one of two definite values, 0 or 1. A Qubit (quantum bit) can exist in a linear combination of both 0 or 1, simultaneously. Using Dirac notation, the general single-qubit state is written as
+
+%
+\begin{equation}
+\label{eq:qubit}
+\ket{\psi} = \alpha\ket{0} + \beta\ket{1},
+\end{equation}
+%
+
+where $\alpha$ and $\beta$ are complex probability amplitudes that satisfy $|\alpha|^{2}+|\beta|^{2}=1$ \cite{QKDbible}. The two states, $\ket{0}$ and $\ket{1}$ form the \texit{computational basis} (a.k.a. rectilinear or $Z$ basis). Another valid description of a qubit uses the diagonal basis (a.k.a $X$ Basis), defined as
+
+%
+\begin{equation}
+\label{eq:diag-basis}
+\ket{+} = \frac{\ket{0}+\ket{1}}{\sqrt{2}}, \qquad
+\ket{-} = \frac{\ket{0}-\ket{1}}{\sqrt{2}}.
+\end{equation}
+%
+
+In a physical QKD system, qubits are typically encoded in the polarisation of single photons: $\ket{0}$ and $\ket{1}$ may correspond to horizontal and vertical polarisation, while $\ket{+}$ and $\ket{-}$ correspond to $+45^{\circ}$ and $-45^{\circ}$ diagonal polarisation \cite{BB84}. Superposition is what allows a single photon to carry information in more than one basis at once, this property becomes a security asset because any attempt to read the qubit forces a basis choice that irreversibly disturbs the state.
+
+\subsection{Measurement Disturbance}
+Measuring a qubit that is in superposition collapses it probabilistically into one of the basis states of the chosen measurement apparatus. If Alice prepares $\ket{+}$ (encoding a logical 1 in BB84's diagonal basis) and Bob measures in the matching $X$ basis, he recovers the correct value with certainty. However, if Bob instead measures in the $Z$ basis, he obtains $\ket{0}$ or $\ket{1}$, each with probability $\frac{1}{2}$, and the original superposition is destroyed \cite{QKDbible}. The $Z$ and $X$ bases are called \textit{conjugate bases} because perfect knowledge in one precludes any information about the other. This is the physical mechanism behind the sifting step in BB84 and B92: only the rounds where Alice and Bob happen to use compatible bases contribute to the key, while mismatched rounds are discarded because Bob's result is uncorrelated with Alice's bit \cite{BB84, B92}.
+
+Critically, measurement disturbance also applies to an eavesdropper (Eve). If Eve intercepts a qubit and measures it in the wrong basis, she collapses the state and re-sends a qubit that no longer matches Alice's preparation. When Alice and Bob later compare a random subset of their sifted key, they detect these errors as an elevated Quantum Bit Error Rate (QBER). An intercept-resend attack on BB84 introduces a characteristic QBER of approximately $25\%$ \cite{Scarani2009, ShorPreskill2000}. % NEW well above the $11\%$ threshold at which no secret key can be
+
+
+\subsection{No-cloning Theorem}
+
+A natural question is whether Eve could copy the qubit in transit, keep the copy for later analysis, and forward the original undisturbed qubit. The no-cloning theorem, proven independently by Wootters \& Zurek~\cite{WZ1982} and by Dieks \cite{Dieks1982}, rules this attack out. The theorem states that no physical process can produce a perfect copy of an arbitrary unknown quantum state. Formally, there exists no unitary operator $U$ such that $U\ket{\psi}\ket{0} = \ket{\psi}\ket{\psi}$, for all $\ket{\psi}$ \cite{QKDbible}. The proof is compact: suppose such a $U$ did exist for two non-orthogonal states $\ket{\psi}$ and $\ket{\phi}$. Unitarity requires preservation of inner products, giving $\braket{\psi|\phi} = (\braket{\psi|\phi})^{2}$, which is satisfied only when $\braket{\psi|\phi} = 0$ or $1$. Since $\ket{\psi}$ and $\ket{\phi}$ are non-orthogonal by assumption, neither condition holds, producing a contradiction.
+
+No-cloning is the single most important result underpinning QKD. It guarantees that Eve cannot silently duplicate quantum transmissions and is the reason quantum key distribution can offer information-theoretic security rather than the computational security of classical schemes~\cite{ekertQI}. B92 exploits this principle particularly directly, where the protocol encodes bits using only two non-orthogonal states ($\ket{0}$ and $\ket{+}$), no measurement or cloning strategy can distinguish them with certainty \cite{B92}.
+
+\subsection{Heisenburg's Uncertainty}
+
+Closely related to measurement disturbance is Heisenberg's uncertainty principle \cite{Heisenberg1927}. In its information-theoretic form relevant to QKD, the principle states that for two non-commuting observables (such as polarisation measured in
+the $Z$ and $X$ bases), simultaneously obtaining precise values for both is impossible. Any measurement that yields information about one observable necessarily introduces uncertainty in the other \cite{QKDbible}. In the context of QKD, this means Eve faces a fundamental trade-off: gaining information about Alice's bit in one basis unavoidably disturbs the conjugate-basis encoding, which manifests as detectable errors. Heisenberg's principle and the no-cloning theorem are logically distinct but operationally complementary; together they establish that any eavesdropping strategy, whether based on measurement, cloning, or a combination of both, will leave a detectable footprint in the quantum channel \cite{Scarani2009}. 
+
+\subsection{Quantum Entanglement \& Bell's Theorem}
+
+Two or more qubits can exist in an \textit{entangled} state that cannot be described as a product of individual qubit states. The canonical example is the Bell state (also called an EPR pair after Einstein, Podolsky and Rosen \cite{EPR1935}): % NEW
+%
+\begin{equation}
+\label{eq:bell-state}
+\ket{\Phi^{+}} = \frac{\ket{00}+\ket{11}}{\sqrt{2}}.
+\end{equation}
+%
+If Alice holds the first qubit and Bob the second, a measurement by Alice in the $Z$ basis yielding $\ket{0}$ instantaneously projects Bob's qubit into $\ket{0}$ as well, regardless of the spatial separation between them~\cite{QKDbible}. Entanglement does not permit faster-than-light communication (the individual outcomes are still uniformly random), but it does produce correlations that cannot be explained by any local hidden-variable theory.
+
+Bell \cite{Bell1964} formalised this distinction in 1964 by deriving an inequality that any local realist theory must satisfy. The experimentally testable form due to Clauser, Horne, Shimony and Holt \cite{CHSH1969} (the CHSH inequality) states
+%
+\begin{equation}
+\label{eq:chsh}
+|S| = |E(a,b) - E(a,b') + E(a',b) + E(a',b')| \leq 2,
+\end{equation}
+%
+where $E(a,b)$ denotes the correlation of measurement outcomes for settings $a$ and $b$. Quantum mechanics predicts a maximum value of $|S| = 2\sqrt{2} \approx 2.83$, a violation confirmed experimentally by Aspect \cite{Aspect1982}.
+
+Ekert's E91 protocol \cite{E91} directly leverages this result: Alice and Bob each receive one qubit from a stream of entangled pairs and measure in randomly chosen bases. If the CHSH parameter $S$ reaches the quantum-mechanical value of $2\sqrt{2}$, the correlations cannot have been pre-shared with Eve, confirming that the channel is secure. Any eavesdropping disturbs the entanglement and reduces $|S|$ toward the classical bound of 2, providing a built-in security test \cite{ekertQI}. While BB84 and B92 do not require entanglement for their operation, the Shor-Preskill security proof \cite{ShorPreskill2000} establishes a formal equivalence between BB84 and an entanglement-based protocol, meaning the security of BB84 ultimately derives from the same non-local correlations that Bell's theorem characterises.
+
+Taken together, these five principles form the theoretical foundation on which the QKD protocols discussed in the following sections are built. Superposition and conjugate bases enable the encoding of key bits, measurement disturbance and the uncertainty principle ensure that eavesdropping is detectable, and the no-cloning theorem prevents silent interception. Entanglement extends these guarantees to protocols such as E91 and provides the mathematical framework through which the security of prepare-and-measure protocols like BB84 is formally proven.
+
+% QKD whitepapers
+\section{Quantum Key Distribution Protocols}
+
+various schemes exist, Im looking into discrete variable, prepare and measure/ entanglement based models for the bb84, b92, e91 protocols. 
+
+% discuss the basis sifitng & priavcy amplification processes
+\section{The Post-Processing Pipeline}
+
+\section{Noise Models for Modelling} 
+
+\section{QKD Simulation Frameworks}
+
+\section{Research Gaps}
+
+% ═══════════════════════════════════════════════════════════════════════════════
+\chapter{Methodology}
+% ═══════════════════════════════════════════════════════════════════════════════
+
+\section{Simulation Architecture}
+
+% TODO: Describe the modular object-oriented design of the platform.
+
+\section{Protocol Implementations}
+
+% --- HEADING LEVEL DEMO ---
+% These demonstrate all four IEEE heading levels within a section:
+
+\subsection{BB84 Protocol}
+
+% Heading 3 example (run-in, indented 1em, Arabic numeral + right paren):
+\subsubsection{Basis Selection} The sender (Alice) randomly selects
+between the rectilinear and diagonal bases for each qubit transmission.
+
+% Heading 4 example (run-in, indented 2em, lowercase alpha + right paren):
+\paragraph{Rectilinear basis} Uses the computational basis states
+$\ket{0}$ and $\ket{1}$ for encoding bit values 0 and 1 respectively.
+
+\paragraph{Diagonal basis} Uses the Hadamard-rotated states
+$\ket{+}$ and $\ket{-}$ for encoding.
+
+% --- Example: Code Listing ---
+\Cref{lst:measure} shows the measurement logic used by the receiver (Bob)
+in the BB84 protocol implementation.
+
+\begin{lstlisting}[language=Python, caption={BB84 receiver measurement logic.}, label={lst:measure}]
+def measure_qubits(qubits, bases):
+    """
+    Measurement logic for QKD receiver.
+    Applies rectilinear or diagonal measurement
+    depending on the randomly chosen basis.
+    """
+    results = []
+    for q, b in zip(qubits, bases):
+        if b == 0:
+            results.append(measure_rectilinear(q))
+        else:
+            results.append(measure_diagonal(q))
+    return results
+\end{lstlisting}
+
+% --- Example: Algorithm ---
+The high-level flow of the BB84 key sifting procedure is presented in
+\cref{alg:bb84}.
+
+\begin{algorithm}[H]
+    \caption{BB84 Key Sifting Procedure}\label{alg:bb84}
+    \KwIn{Alice's bits $a_i$, bases $\hat{a}_i$; Bob's measurements $b_i$, bases $\hat{b}_i$}
+    \KwOut{Sifted key $K$}
+    $K \leftarrow \emptyset$\;
+    \For{$i \leftarrow 1$ \KwTo $n$}{
+        Alice publishes $\hat{a}_i$ over classical channel\;
+        Bob publishes $\hat{b}_i$ over classical channel\;
+        \If{$\hat{a}_i = \hat{b}_i$}{
+            Append $b_i$ to $K$ \Comment{Matching basis --- keep bit}
+        }
+    }
+    \Return{$K$}
+\end{algorithm}
+
+\subsection{B92 Protocol}
+
+% TODO: Implementation details for B92.
+
+\subsection{E91 Protocol}
+
+% TODO: Implementation details for E91 (entanglement-based).
+
+%modelling assumptions for the protocols: measurement device characteristics etc
+\section{Modelling Assumptions}
+
+\section{Noise Models and Channel Simulation}
+
+% TODO: Depolarising channel, amplitude damping, eavesdropper models.
+
+\section{Performance Metrics}
+
+% TODO: Secure key rate (Shor--Preskill bound, GLLP), QBER, sifted key
+% efficiency, error correction overhead ($f_{\mathrm{EC}} = 1.16$).
+
+% --- Example: Equation ---
+% IEEE equations: 10pt, 12pt line spacing, centred, optional right-justified numbering
+The asymptotic secure key rate under the Shor--Preskill bound is given by:
+\begin{equation}\label{eq:keyrate}
+    \keyrate = 1 - h(\QBER) - f_{\mathrm{EC}}\, h(\QBER)
+\end{equation}
+where $h(\cdot)$ denotes the binary Shannon entropy and $f_{\mathrm{EC}}$
+is the error correction inefficiency factor.
+
+% --- Example: Table ---
+% IEEE tables: caption above, 8pt caption, Roman numeral, small caps "TABLE"
+\Cref{tab:throughput} summarises the simulated system throughput under
+ideal channel conditions.
+
+\begin{table}[H]
+    \centering
+    \caption{System Throughput Analysis}\label{tab:throughput}
+    {\footnotesize                     % IEEE table text: 8pt
+    \begin{tabular}{l c c}
+        \toprule
+        \textbf{Component} & \textbf{Latency (ms)} & \textbf{Jitter (ms)} \\
+        \midrule
+        Alice (Tx)         & 1.2                   & 0.05                 \\
+        Bob (Rx)           & 1.4                   & 0.08                 \\
+        \bottomrule
+    \end{tabular}}
+\end{table}
+
+% --- Example: Figure placeholder ---
+% IEEE figures: caption below, "Fig." label, Arabic numeral, 8pt caption
+% Uncomment when figure files are ready:
+% \begin{figure}[htbp]
+%     \centering
+%     \includegraphics[width=0.85\textwidth]{figures/keyrate_vs_qber.pdf}
+%     \caption{Secure key rate as a function of QBER for BB84 under
+%              depolarising noise with $f_{\mathrm{EC}} = 1.16$.}
+%     \label{fig:keyrate}
+% \end{figure}
+
+
+% ═══════════════════════════════════════════════════════════════════════════════
+\chapter{Results \& Discussion}
+% ═══════════════════════════════════════════════════════════════════════════════
+
+% TODO: Present and analyse simulation results.
+% Include comparative analysis of BB84, B92, E91 under varying conditions.
+
+% simulation outputs
+\section{Simulation Outputs}
+
+% bb84 vs b92
+\section{BB84 vs B92}
+
+% performance validation
+\section{Performance Validation}
+
+% implications of results
+\section{Implications}
+
+% ═══════════════════════════════════════════════════════════════════════════════
+\chapter{Conclusion \& Future Work}
+% ═══════════════════════════════════════════════════════════════════════════════
+
+% TODO: Summarise findings, contributions, limitations, and future directions.
+
+
+
+
+% ─────────────────────────────────────────────────────────────────────────────
+% REFERENCES
+% ─────────────────────────────────────────────────────────────────────────────
+% IEEE references: 8pt, 9pt line spacing, bracketed Arabic numerals [1], [2]
+\clearpage
+{\footnotesize
+\bibliographystyle{IEEEtran}
+\bibliography{bib}
+}
+
+% ─────────────────────────────────────────────────────────────────────────────
+% APPENDICES
+% ─────────────────────────────────────────────────────────────────────────────
+\appendix
+
+\chapter{Source Code}
+% TODO: Full source code listings or link to repository.
+
+\chapter{Additional Results}
+% TODO: Supplementary plots, extended data tables.
+
+\end{document}

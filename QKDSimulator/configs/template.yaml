@@ -1,0 +1,52 @@
+# ============================================================
+# QKD Simulator - Configuration Template
+# ============================================================
+# Copy this file and uncomment the parameters you need.
+# All parameters have sensible defaults — only 'mode' is required.
+#
+# Modes: single | sweep | eve_sweep | protocol_comparison
+# Protocols: bb84 | b92 | e91
+# Noise types: none | depolarizing | bitflip | phaseflip
+#              | amplitude_damping | phase_damping
+# ============================================================
+
+mode: single
+
+# --- Protocol selection ---
+# protocol: bb84
+
+# --- For protocol_comparison mode ---
+# protocols:
+#   - bb84
+#   - b92
+#   - e91
+
+# --- Basic parameters ---
+# n_qubits: 256
+# n_trials: 30
+# f_ec: 1.16              # 1.0 = Shannon limit, 1.16 = CASCADE
+
+# --- Noise ---
+# noise_type: none
+# noise_strength: 0.0     # Used in single mode
+
+# --- Noise sweep range (sweep / protocol_comparison) ---
+# noise_min: 0.0
+# noise_max: 0.30
+# noise_steps: 21
+
+# --- Eve ---
+# eve_rate: null           # null = no eavesdropper, 0.0-1.0
+
+# --- Eve sweep range (eve_sweep mode) ---
+# eve_min: 0.0
+# eve_max: 1.0
+# eve_steps: 11
+
+# --- E91-specific ---
+# e91_channel_topology: both   # 'both' or 'bob'
+
+# --- Output ---
+# output_dir: ./results
+# save_plots: true
+# show_plots: false

@@ -1,0 +1,10 @@
+mode: eve_sweep
+protocol: bb84
+n_qubits: 256
+n_trials: 30
+noise_type: none
+noise_strength: 0.0
+eve_min: 0.0
+eve_max: 1.0
+eve_steps: 11
+output_dir: ./results/eve_sweep

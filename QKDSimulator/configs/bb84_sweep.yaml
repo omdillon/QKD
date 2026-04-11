@@ -1,0 +1,9 @@
+mode: sweep
+protocol: bb84
+n_qubits: 256
+n_trials: 30
+noise_type: depolarizing
+noise_min: 0.0
+noise_max: 0.30
+noise_steps: 21
+output_dir: ./results/bb84_sweep
