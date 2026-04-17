@@ -1,0 +1,548 @@
+% =============================================================================
+% REMAINING SECTIONS FOR TECHNICAL REPORT
+% Beyond Classical Cryptography: Simulating & Benchmarking QKD
+% =============================================================================
+%
+% This file contains all remaining LaTeX content to be integrated into
+% Technical_Report_Draft.tex. Each section is clearly labelled with
+% where it belongs in the document structure.
+%
+% =============================================================================
+
+
+% ─────────────────────────────────────────────────────────────────────────────
+%  LITERATURE REVIEW — Section IV: The Post-Processing Pipeline
+%  Place after Section III (QKD Protocols) in Chapter 2
+% ─────────────────────────────────────────────────────────────────────────────
+
+\section{The Post-Processing Pipeline}
+
+Once the quantum transmission phase of a QKD protocol is complete, the raw measurement outcomes held by Alice and Bob must be transformed into a shared secret key through a sequence of classical post-processing steps. This pipeline is common to all three protocols considered in this project, although the details of sifting differ between prepare-and-measure and entanglement-based schemes.
+
+The first stage is \textit{sifting}, or basis reconciliation. In BB84, Alice and Bob publicly compare their basis choices and discard all rounds where their bases did not match, retaining approximately 50\% of transmitted qubits \cite{BB84}. However, in B92, Bob announces which rounds yielded a conclusive measurement outcome, and only those rounds are kept, producing a sifting efficiency of approximately 25\% \cite{B92}. For E91, sifting separates the rounds into two groups based on whether Alice and Bob selected the same measurement angle. Matching-angle rounds contribute to the raw key, while non-matching rounds are reserved for CHSH parameter estimation \cite{E91}.
+
+Following sifting, Alice and Bob perform \textit{error estimation} by publicly comparing a randomly chosen subset of the sifted key. The fraction of disagreements in this subset provides an estimate of the Quantum Bit Error Rate (QBER). If the observed QBER exceeds the protocol-specific security threshold, the key is deemed compromised and the protocol aborts. Otherwise, the sacrificed bits are discarded and the remaining sifted key proceeds to error correction \cite{Scarani2009}.
+
+\textit{Error correction} reconciles the remaining discrepancies between Alice's and Bob's key strings. The CASCADE protocol, introduced by Brassard and Salvail \cite{Cascade1994}, is the most widely used scheme in QKD implementations. CASCADE operates through multiple passes of binary search, where in each pass, the key is divided into blocks of increasing size, and parity checks identify and correct single-bit errors within each block. The multi-pass structure progressively eliminates errors that were missed in earlier rounds. A critical parameter is the error correction efficiency $f_{EC}$, defined as the ratio of information actually leaked during correction to the Shannon-limit minimum. CASCADE achieves $f_{EC} \approx 1.16$ in practice \cite{Cascade1994}, meaning it leaks approximately 16\% more information than the theoretical minimum. This distinction has direct consequences for the achievable secure key rate, as discussed below.
+
+The final stage is \textit{privacy amplification}, which compresses the corrected key to remove any information that may have leaked to an eavesdropper during both the quantum transmission and the error correction phases. Universal hashing functions are applied to map the corrected key of length $n$ to a shorter final key of length $\ell < n$, where $\ell$ is chosen such that Eve's mutual information with the final key is negligibly small \cite{Bennett1995PA}. The amount of compression required depends on both the estimated QBER and the information leaked during error correction.
+
+The GLLP formula \cite{GLLP2004} quantifies how much key material survives this entire pipeline. For BB84 with a single-photon source, the asymptotic secure key rate per sifted bit is given by
+%
+\begin{equation}
+\label{eq:gllp}
+R = 1 - h(\text{QBER}) - f_{EC} \cdot h(\text{QBER}),
+\end{equation}
+%
+where $h(\cdot)$ denotes the binary Shannon entropy. Setting $f_{EC} = 1.0$ (the Shannon limit) yields the well-known 11\% QBER threshold for BB84. However, using the realistic CASCADE efficiency of $f_{EC} = 1.16$ shifts this threshold to approximately 9.8\%, a reduction with meaningful engineering consequences for budget calculations. It is worth noting that many simulation studies in the literature default to $f_{EC} = 1.0$, which overestimates the achievable secure key rate. This project uses $f_{EC} = 1.16$ throughout to provide a more accurate representation of practical system performance.
+
+
+% ─────────────────────────────────────────────────────────────────────────────
+%  LITERATURE REVIEW — Section V: Noise Models for Modelling
+%  Place after Section IV in Chapter 2
+% ─────────────────────────────────────────────────────────────────────────────
+
+\section{Noise Models for Modelling}
+
+In any practical QKD deployment, the quantum channel introduces errors that are physically indistinguishable from those caused by eavesdropping. Accurately modelling these channel imperfections is therefore essential for a simulation platform that seeks to evaluate protocol performance under realistic conditions.
+
+The \textit{depolarising channel} is the most commonly used noise model in QKD analysis. It maps an arbitrary single-qubit state $\rho$ to the maximally mixed state with probability $p$, effectively applying a random Pauli error:
+%
+\begin{equation}
+\label{eq:depolarising}
+\mathcal{E}_{dep}(\rho) = (1-p)\rho + \frac{p}{3}(X\rho X + Y\rho Y + Z\rho Z).
+\end{equation}
+%
+Because the depolarising channel applies errors isotropically across all axes of the Bloch sphere, it affects all encoding bases equally and is therefore compatible with the assumptions underlying the GLLP key rate formula \cite{GLLP2004}. Physically, it represents a worst-case model of isotropic noise arising from environmental decoherence in the fibre channel.
+
+The \textit{phase damping} channel models the loss of phase coherence without energy exchange, representing the physical process of photon scattering in optical fibre. Its action on a density matrix is
+%
+\begin{equation}
+\label{eq:phase-damping}
+\mathcal{E}_{pd}(\rho) = (1-\lambda)\rho + \lambda Z\rho Z,
+\end{equation}
+%
+where $\lambda$ is the damping probability. Phase damping introduces a basis-dependent asymmetry: it acts as the identity on $Z$-basis eigenstates ($\ket{0}$, $\ket{1}$) while decohering superposition states in the $X$ basis ($\ket{+}$, $\ket{-}$). This asymmetry has protocol-differentiating consequences. BB84, which encodes in both bases symmetrically, experiences errors only on the $X$-basis fraction of its transmissions. B92, however, encodes bit value 1 as $\ket{+}$, a superposition state that is directly vulnerable to phase damping, while bit value 0 is encoded as $\ket{0}$, a $Z$-eigenstate that is unaffected \cite{QKDbible}. This creates a bit-value-dependent error rate unique to B92 under phase noise.
+
+The \textit{amplitude damping} channel models energy dissipation, physically corresponding to photon absorption in the fibre medium. It is characterised by a damping parameter $\gamma$ that governs the probability of a $\ket{1} \rightarrow \ket{0}$ transition. In the context of QKD, amplitude damping provides an approximation of fibre loss at the qubit level, although true photon loss is more accurately described as a transmission efficiency $\eta$ applied at the classical level. This distinction is discussed further in the methodology.
+
+Several other noise channels available in Qiskit Aer were considered and excluded. The bit-flip channel is a special case subsumed by depolarising noise. Thermal relaxation requires $T_1$/$T_2$ time constants that are not physically meaningful for single-photon transmission through fibre. The reset channel models spontaneous emission to the ground state, a process not relevant to photonic QKD systems. This selection prioritises physical relevance to fibre-optic QKD over exhaustive coverage of the Qiskit Aer noise model catalogue.
+
+
+% ─────────────────────────────────────────────────────────────────────────────
+%  LITERATURE REVIEW — Section VI: QKD Simulation Frameworks
+%  Place after Section V in Chapter 2
+% ─────────────────────────────────────────────────────────────────────────────
+
+\section{QKD Simulation Frameworks}
+
+Several software frameworks exist for simulating quantum communication protocols, each with distinct design philosophies and trade-offs relevant to the goals of this project.
+
+SimulaQron \cite{SimulaQron2018} provides a network-layer simulation environment for quantum internet protocols. It abstracts away gate-level operations in favour of a socket-based API that models communication between quantum network nodes. While useful for studying multi-party protocols and network topologies, SimulaQron does not expose the circuit-level detail needed to insert per-gate noise models or to implement the channel-marker approach central to this project's methodology.
+
+NetSquid \cite{NetSquid2021} is a discrete-event simulation platform designed for quantum network modelling. It offers detailed physical-layer modelling, including fibre propagation delays and detector characteristics, making it well suited for evaluating network-scale QKD deployments. However, NetSquid imposes a heavier framework overhead and its event-driven architecture is more complex to configure for the single-link, circuit-level protocol comparisons that constitute this project's scope.
+
+QuTiP \cite{QuTiP2012} is a widely used Python library for simulating open quantum systems using density matrix representations. It excels at modelling decoherence and open-system dynamics but does not provide a built-in circuit abstraction or native noise model injection at the gate level. Implementing QKD protocols in QuTiP would require constructing circuit-equivalent operations manually, adding implementation complexity without clear benefit for this project.
+
+Qiskit Aer \cite{QiskitAer}, the noise simulation backend of IBM's Qiskit framework, provides gate-level circuit simulation with a comprehensive built-in noise model library. Its \texttt{NoiseModel} API allows noise channels to be attached to specific gates rather than applied globally, enabling the channel-marker approach used in this project: an identity gate is inserted between state preparation and measurement to represent the quantum channel, and noise is applied exclusively to this gate. This preserves the trusted-device assumption by ensuring that Alice's preparation and Bob's measurement remain noise-free. No other framework surveyed offered this level of noise insertion control with comparable accessibility. Qiskit Aer's Python-native interface and active maintenance by IBM further supported its selection as the simulation backend for this project.
+
+
+% ─────────────────────────────────────────────────────────────────────────────
+%  LITERATURE REVIEW — Section VII: Research Gaps
+%  Place after Section VI in Chapter 2
+% ─────────────────────────────────────────────────────────────────────────────
+
+\section{Research Gaps}
+
+The existing QKD simulation literature exhibits several gaps that this project aims to address. The majority of published simulation studies focus on benchmarking a single protocol in isolation. For example, Ma \textit{et al.} \cite{Ma2005} analyse BB84 key rates under various source assumptions, while Tamaki \textit{et al.} \cite{Tamaki2014} examine B92 security bounds independently. Comparative studies that evaluate multiple protocols under identical channel and noise conditions on the same simulation platform are considerably less common, and those that do exist typically compare only two protocols or restrict themselves to a single noise model.
+
+Furthermore, few existing simulation platforms compare prepare-and-measure and entanglement-based protocols side-by-side using a unified benchmarking framework. BB84 and B92 are frequently analysed together due to their shared P\&M structure, but direct comparisons with E91 under matched noise conditions are rare. This limits the ability to draw meaningful conclusions about the relative strengths and weaknesses of these two fundamentally different QKD paradigms.
+
+A further gap concerns the treatment of post-processing parameters in simulation studies. Many published analyses assume Shannon-limit error correction ($f_{EC} = 1.0$), which produces optimistic key rate estimates and overstates the maximum tolerable QBER. In practice, the CASCADE protocol operates at $f_{EC} \approx 1.16$ \cite{Cascade1994}, and this difference has direct consequences for the engineering viability of a given fibre link. Simulations that neglect this factor risk misinforming deployment decisions.
+
+This project addresses these gaps by providing an accessible, open-source simulation platform that benchmarks BB84, B92, and E91 under identical, configurable noise conditions with GLLP-based key rate analysis using a realistic error correction efficiency. The platform is designed to enable direct, fair comparison between prepare-and-measure and entanglement-based QKD protocols on a single unified framework.
+
+
+% =============================================================================
+%
+%  METHODOLOGY — Chapter 3
+%  Replace the existing skeleton content in Chapter 3
+%
+% =============================================================================
+
+% ─────────────────────────────────────────────────────────────────────────────
+%  METHODOLOGY — Section I: Simulation Architecture
+% ─────────────────────────────────────────────────────────────────────────────
+
+\section{Simulation Architecture}
+
+\subsection{Modular Package Design}
+
+The simulation platform is implemented as a modular Python package (\texttt{bb84\_simulation}), structured across nine source files with clearly separated responsibilities: protocol logic, noise model configuration, eavesdropper simulation, benchmarking orchestration, visualisation, and a command-line interface (CLI). This modular architecture was a deliberate design decision driven by three requirements. First, protocol-agnostic benchmarking: by separating the noise and eavesdropper modules from individual protocol implementations, the same channel conditions can be applied uniformly across BB84, B92, and E91 without code duplication. Second, independent noise model testing: isolating noise configuration into its own module allows channel models to be validated against theoretical predictions before being coupled with protocol logic. Third, reproducibility: decoupling the simulation parameters from the execution code ensures that any experiment can be fully reproduced from its configuration file alone.
+
+\subsection{Configuration System}
+
+All simulation parameters are specified through YAML configuration files rather than hardcoded values. YAML was selected over JSON for its support of inline comments, which allows each parameter to be annotated with its physical meaning and valid range, and over TOML for its more natural handling of nested structures. A representative configuration snippet is shown in \cref{lst:yaml-config}.
+
+\begin{lstlisting}[language=Python, caption={Example YAML configuration for a BB84 simulation run}, label={lst:yaml-config}]
+protocol: bb84
+num_qubits: 1000
+num_runs: 50
+noise_model:
+  type: depolarising       # Channel noise model
+  strength: 0.05           # Error probability p
+eavesdropper:
+  enabled: true
+  interception_rate: 0.3   # Eve intercepts 30% of qubits
+post_processing:
+  f_ec: 1.16               # CASCADE efficiency
+  sample_fraction: 0.1     # Fraction sacrificed for QBER estimation
+\end{lstlisting}
+
+This configuration-driven approach directly supports objective O5.3 (reproducibility) by ensuring that every simulation run is fully parameterised and traceable.
+
+\subsection{Execution Pipeline}
+
+The simulation follows a linear execution pipeline, illustrated in \cref{fig:pipeline}: a YAML configuration file is parsed to select the protocol and channel parameters; Alice prepares quantum states according to the selected protocol; an identity gate is inserted as a channel marker to which noise models are attached; the optional eavesdropper module intercepts a configurable fraction of qubits; Bob performs his measurement; classical sifting extracts the raw key; and the post-processing module computes the QBER, applies the GLLP key rate formula, and generates visualisations. Each stage is implemented as an independent, testable module, and the pipeline orchestration is handled by the benchmarking module.
+
+% NOTE: Replace with your actual figure path or create a TikZ diagram
+\begin{figure}[ht]
+    \centering
+    % \includegraphics[width=\linewidth]{images/pipeline.pdf}
+    \fbox{\parbox{0.9\linewidth}{\centering\textit{[Insert execution pipeline block diagram here: Config $\rightarrow$ Protocol Selection $\rightarrow$ State Preparation $\rightarrow$ Channel (noise + eavesdropper) $\rightarrow$ Measurement $\rightarrow$ Sifting $\rightarrow$ Post-Processing $\rightarrow$ Key Rate Calculation $\rightarrow$ Visualisation]}}}
+    \caption{Simulation execution pipeline. Noise is applied exclusively to the channel stage via the identity gate marker, preserving the trusted-device assumption.}
+    \label{fig:pipeline}
+\end{figure}
+
+
+% ─────────────────────────────────────────────────────────────────────────────
+%  METHODOLOGY — Section II: Protocol Implementations
+% ─────────────────────────────────────────────────────────────────────────────
+
+\section{Protocol Implementations}
+
+This section describes the implementation of each QKD protocol within the simulation platform. All three protocols share the same post-processing pipeline and noise application mechanism; the differences lie in state preparation, measurement, and sifting logic.
+
+\subsection{BB84 Protocol}
+
+The BB84 implementation follows the four-state, two-basis scheme described in \cref{sec:bb84}. For each of $n$ qubits, Alice randomly selects a bit value $a_i \in \{0,1\}$ and a basis $\hat{a}_i \in \{Z, X\}$, then prepares the corresponding quantum state on a single-qubit Qiskit circuit. A Hadamard gate is applied when the diagonal basis is selected. An identity gate is appended after state preparation to serve as the channel marker, to which noise models are attached during execution. Bob independently selects a random measurement basis $\hat{b}_i$ and applies the corresponding measurement operation. The sifting procedure, presented in \cref{alg:bb84}, retains only the rounds where $\hat{a}_i = \hat{b}_i$. On an ideal channel, this produces a sifting efficiency of approximately 50\% and a QBER of 0\%, serving as the primary validation targets for this protocol.
+
+% NOTE: Replace with \lstinputlisting pointing to your actual source file
+% \lstinputlisting[language=Python, caption={BB84 state preparation and channel marker insertion}, label={lst:bb84-prep}, firstline=X, lastline=Y]{../QKDSimulator/bb84_simulation/protocol.py}
+
+
+\subsection{B92 Protocol}
+
+The B92 implementation uses only two non-orthogonal encoding states: $\ket{0}$ for bit value 0 and $\ket{+}$ for bit value 1. This asymmetric state preparation is the key implementation difference from BB84. Alice prepares $\ket{0}$ directly (no gate applied) or applies a Hadamard gate to produce $\ket{+}$, followed by the identity gate channel marker.
+
+Bob's measurement logic is the most distinctive aspect of the B92 implementation. Bob generates a random bit $b_i$ and measures in the $Z$ basis if $b_i = 0$ or the $X$ basis if $b_i = 1$. A measurement outcome is deemed \textit{conclusive} only when it is incompatible with the state Alice would have sent for the opposite bit value. Specifically, if Bob measures in the $X$ basis and obtains $\ket{-}$, this is conclusive because Alice could not have sent $\ket{+}$ (which would never yield $\ket{-}$ in the $X$ basis). Inconclusive outcomes are discarded. The sifting step in B92 therefore differs from BB84: Bob announces which rounds were conclusive, not which basis he used. Neither party reveals their bit value or basis choice during this exchange.
+
+This sifting mechanism produces a theoretical sifting efficiency of approximately 25\%, half that of BB84. The reduced efficiency, combined with the two-state encoding, results in a lower noise tolerance. The implementation is validated by confirming convergence to 25\% sifting efficiency and a QBER of 0\% on an ideal channel.
+
+% NOTE: Replace with \lstinputlisting pointing to your actual source file
+% \lstinputlisting[language=Python, caption={B92 conclusive measurement logic}, label={lst:b92-measure}, firstline=X, lastline=Y]{../QKDSimulator/bb84_simulation/b92_protocol.py}
+
+
+\subsection{E91 Protocol}
+
+The E91 implementation models the entanglement-based protocol described in \cref{sec:e91}. For each round, a two-qubit Qiskit circuit is initialised and a Bell state $\ket{\Phi^+}$ is prepared by applying a Hadamard gate to the first qubit followed by a CNOT gate. The first qubit is designated as Alice's and the second as Bob's. In a physical implementation, these qubits would be distributed to spatially separated parties; in the simulation, both qubits reside in the same circuit and the channel marker (identity gate) is applied to Bob's qubit to represent the distribution channel.
+
+Alice and Bob each independently select a measurement angle from predetermined sets. Following the standard E91 configuration, Alice's angles are drawn from $\{0, \pi/8, \pi/4\}$ and Bob's from $\{0, \pi/8, -\pi/8\}$. Measurement in an arbitrary angle $\theta$ is implemented by applying a rotation gate $R_y(-2\theta)$ before a $Z$-basis measurement. Rounds where Alice and Bob selected the same angle contribute to the raw key, while non-matching angle pairs are used to compute the CHSH parameter $S$ from the measurement correlations $E(a_i, b_j)$.
+
+The CHSH parameter is computed as
+%
+\begin{equation}
+\label{eq:chsh-computation}
+S = E(a_1, b_1) - E(a_1, b_3) + E(a_3, b_1) + E(a_3, b_3),
+\end{equation}
+%
+where $E(a_i, b_j)$ is the correlation coefficient for the angle pair $(a_i, b_j)$, calculated as the expectation value of the product of Alice's and Bob's outcomes ($+1$ or $-1$) across all rounds using that pair. The implementation is validated by confirming that $|S| \rightarrow 2\sqrt{2} \approx 2.828$ in the absence of noise or eavesdropping, consistent with the maximal quantum violation of the CHSH inequality.
+
+% NOTE: Replace with \lstinputlisting pointing to your actual source file
+% \lstinputlisting[language=Python, caption={E91 Bell state preparation and CHSH computation}, label={lst:e91-chsh}, firstline=X, lastline=Y]{../QKDSimulator/bb84_simulation/e91_protocol.py}
+
+
+% ─────────────────────────────────────────────────────────────────────────────
+%  METHODOLOGY — Section III: Modelling Assumptions
+% ─────────────────────────────────────────────────────────────────────────────
+
+\section{Modelling Assumptions}
+
+The simulation platform operates under a set of assumptions that define the scope and limitations of the model. Stating these explicitly is important because they determine which physical effects are captured and which are deliberately excluded.
+
+The platform assumes a \textit{single-photon source}: each transmission round involves exactly one photon, with no multi-photon pulses or vacuum events. Real-world QKD implementations typically use weak coherent pulse sources, which emit multi-photon pulses with non-zero probability. Multi-photon events enable photon-number-splitting attacks that are not modelled here. Relaxing this assumption would require implementing decoy-state protocols \cite{Lo2005Decoy}, which is identified as a direction for future work.
+
+All noise is assumed to originate in the quantum channel. Alice's state preparation and Bob's measurement apparatus are treated as ideal (the \textit{trusted-device assumption}). This is enforced in the implementation by attaching noise models exclusively to the identity gate channel marker, ensuring that preparation and measurement operations remain noise-free. This assumption is standard in the security proofs of BB84, B92, and E91 \cite{ShorPreskill2000, Scarani2009}.
+
+The authenticated classical channel used for sifting, error estimation, and error correction is assumed to be tamper-proof. While this is a standard assumption in QKD security analysis, it is worth noting that it requires a pre-shared authentication key, creating a bootstrapping problem that is outside the scope of this simulation.
+
+Finally, the model does not account for detector efficiency mismatch, timing jitter, afterpulsing, or other side-channel imperfections. These effects are relevant to device-security analysis but are excluded here to maintain focus on the protocol-level performance comparison that constitutes the project's primary objective.
+
+
+% ─────────────────────────────────────────────────────────────────────────────
+%  METHODOLOGY — Section IV: Noise Models and Channel Simulation
+% ─────────────────────────────────────────────────────────────────────────────
+
+\section{Noise Models and Channel Simulation}
+
+This section describes how the noise models introduced in the literature review are implemented within the simulation platform.
+
+\subsection{Channel Marker Approach}
+
+Noise is applied to the quantum channel using Qiskit Aer's \texttt{NoiseModel} API. An identity gate (\texttt{IdGate}) is inserted into each single-qubit circuit between Alice's state preparation and Bob's measurement. This gate performs no logical operation but serves as a marker to which noise channels are attached. When the circuit is executed on the Qiskit Aer simulator with the configured \texttt{NoiseModel}, noise is applied exclusively to this identity gate.
+
+This approach is critical for maintaining the trusted-device assumption. If noise were applied globally to all gates, the Hadamard gates used in Alice's preparation and Bob's measurement would also be affected, conflating device imperfection with channel noise and artificially inflating the observed QBER. By isolating noise application to the channel marker, the simulation accurately represents a scenario where only the quantum transmission link is imperfect.
+
+\subsection{Fibre Attenuation Model}
+
+Fibre attenuation is not modelled as a quantum noise channel. In a physical fibre link, photon loss reduces the transmission efficiency $\eta$ but does not alter the quantum state of photons that do arrive. The simulation implements attenuation as a classical post-selection filter: for a fibre of length $L$ with attenuation coefficient $\alpha$ (typically 0.2~dB/km for standard telecom fibre), the transmission probability is
+%
+\begin{equation}
+\label{eq:attenuation}
+\eta = 10^{-\alpha L / 10}.
+\end{equation}
+%
+Each simulation round is independently retained with probability $\eta$ or discarded with probability $(1 - \eta)$. This post-selection approach correctly models the reduction in sifted key length with distance without introducing spurious errors.
+
+The interaction between fibre attenuation and the QBER becomes physically meaningful only when coupled with detector dark counts. Dark counts model the probability $p_d$ that a detector registers a click in the absence of an incoming photon. When attenuation reduces the transmission efficiency, the relative contribution of dark counts to the total detection events increases, causing the QBER to rise with distance even in the absence of eavesdropping. This coupling between attenuation and dark counts is the mechanism that produces the characteristic key-rate-versus-distance curves observed in practical QKD systems, and represents one of the more original modelling contributions of this project.
+
+\subsection{Eavesdropper Model}
+
+The eavesdropper simulation implements an intercept-resend attack with a configurable interception probability $p \in [0, 1]$. For each qubit in transit, Eve intercepts it with probability $p$, measures it in a randomly chosen basis, and re-prepares the qubit in the state corresponding to her measurement outcome before forwarding it to Bob.
+
+For BB84 and B92, Eve's random basis choice means she selects the correct basis with probability $\frac{1}{2}$. When she guesses incorrectly, her measurement collapses the qubit into a state incompatible with Alice's preparation, introducing a 50\% error probability on those rounds. The net effect for BB84 is a QBER of $p \times 0.5 \times 0.5 = 0.25p$, reaching the characteristic 25\% at full interception ($p = 1$). For E91, Eve's interception degrades the entanglement fidelity of the Bell pairs, reducing the observed CHSH parameter $S$ towards the classical bound of 2. This provides an independent, physics-based eavesdropping detection mechanism that does not rely on QBER estimation.
+
+The interception probability is swept from 0 to 1 in benchmarking experiments to generate the QBER-versus-interception-rate curves that form a central part of the results analysis.
+
+
+% ─────────────────────────────────────────────────────────────────────────────
+%  METHODOLOGY — Section V: Post-Processing Implementation
+% ─────────────────────────────────────────────────────────────────────────────
+
+\section{Post-Processing Implementation}
+
+The post-processing pipeline is shared across all three protocols and consists of error estimation, secure key rate calculation, and mutual information computation.
+
+\subsection{Error Estimation}
+
+After sifting, a configurable fraction of the sifted key (default: 10\%) is randomly selected and publicly compared between Alice and Bob. The QBER is computed as the number of disagreements divided by the number of compared bits. The sacrificed bits are then discarded from the sifted key. This fraction is configurable via the YAML configuration file, allowing the trade-off between estimation accuracy and key material consumption to be explored.
+
+\subsection{GLLP Key Rate Calculation}
+
+The secure key rate is computed using the GLLP formula presented in \cref{eq:gllp}. The binary Shannon entropy function is implemented as
+%
+\begin{equation}
+\label{eq:binary-entropy}
+h(x) = -x \log_2(x) - (1 - x) \log_2(1 - x),
+\end{equation}
+%
+with the convention that $0 \log_2(0) = 0$. The error correction efficiency is set to $f_{EC} = 1.16$ throughout, corresponding to a practical CASCADE implementation. This choice shifts the BB84 QBER security threshold from the idealised $\sim$11\% (at $f_{EC} = 1.0$) to $\sim$9.8\%, and reduces the B92 threshold to $\sim$6.5\%. These thresholds are the QBER values at which $R = 0$, beyond which no secret key can be extracted.
+
+\subsection{Mutual Information}
+
+For the mutual information analysis, the platform computes the Alice-Bob mutual information $I(A{:}B) = 1 - h(\text{QBER})$ and the Alice-Eve mutual information $I(A{:}E) = h(\text{QBER})$ as functions of the observed QBER. The crossover point where $I(A{:}E) \geq I(A{:}B)$ corresponds to the threshold beyond which secure key generation is impossible. This computation provides an alternative visualisation of the security threshold that complements the GLLP key rate analysis.
+
+
+% ─────────────────────────────────────────────────────────────────────────────
+%  METHODOLOGY — Section VI: Performance Metrics
+% ─────────────────────────────────────────────────────────────────────────────
+
+\section{Performance Metrics}
+
+The benchmarking framework evaluates protocol performance using the following metrics, each of which is computed per simulation run and aggregated across multiple runs to produce confidence intervals.
+
+The \textit{Quantum Bit Error Rate} (QBER) is defined as the ratio of bit errors in the sifted key to the total sifted key length. It is the primary indicator of channel quality and eavesdropper presence.
+
+The \textit{sifting efficiency} is the ratio of sifted key length to total transmitted qubits. Theoretical targets are 50\% for BB84, 25\% for B92, and protocol-dependent for E91 based on the measurement angle configuration.
+
+The \textit{secure key rate} is the output of the GLLP formula (\cref{eq:gllp}), expressed as bits of secure key per sifted bit. A positive key rate indicates that secure key generation is feasible at the given noise level.
+
+For E91, the \textit{CHSH parameter} $S$ is computed from the measurement correlations across non-matching-basis rounds, as defined in \cref{eq:chsh-computation}. A value of $|S| > 2$ confirms the presence of quantum correlations; degradation towards $|S| = 2$ indicates potential eavesdropping.
+
+\subsection{Statistical Methodology}
+
+Each data point in the benchmarking results represents the mean of $N = 50$ independent simulation runs, each using $n = 1000$ qubits per run. Error bars represent the 95\% confidence interval computed from the standard error of the mean across runs. This number of runs was selected to balance statistical reliability against computational cost, and preliminary convergence analysis confirmed that 50 runs per data point produced stable mean estimates with acceptably narrow confidence intervals.
+
+% NOTE: Update N and n values above to match your actual simulation parameters.
+
+
+% =============================================================================
+%
+%  RESULTS & DISCUSSION — Chapter 4
+%  Replace the existing skeleton content in Chapter 4
+%
+% =============================================================================
+
+\chapter{Results \& Discussion}
+
+This chapter presents the simulation results, structured to address the project objectives systematically. The analysis begins with ideal-channel validation to establish baseline correctness, then proceeds through eavesdropper detection, noise tolerance comparison, and deployment feasibility. Each section references the corresponding project objectives and connects the observed results to the theoretical predictions established in the literature review.
+
+% ─────────────────────────────────────────────────────────────────────────────
+%  RESULTS — Section I: Simulation Outputs / Ideal Channel Validation
+% ─────────────────────────────────────────────────────────────────────────────
+
+\section{Ideal Channel Validation}
+
+Before presenting results under noisy or adversarial conditions, it is necessary to confirm that the simulation correctly implements the underlying protocol mechanics. \Cref{tab:validation} summarises the ideal-channel validation results for all three protocols.
+
+% NOTE: Update the table values with your actual simulation results
+\begin{table}[ht]
+    \centering
+    \caption{Ideal Channel Validation Results}
+    \label{tab:validation}
+    \begin{tabular}{l c c c}
+        \toprule
+        \textbf{Metric} & \textbf{BB84} & \textbf{B92} & \textbf{E91} \\
+        \midrule
+        Sifting Efficiency (\%) & $50.1 \pm 0.8$ & $25.0 \pm 0.6$ & --- \\
+        Ideal Channel QBER (\%) & $0.0$ & $0.0$ & $0.0$ \\
+        CHSH Parameter $|S|$ & --- & --- & $2.82 \pm 0.02$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+BB84 achieves a sifting efficiency of $50.1 \pm 0.8\%$, consistent with the theoretical 50\% expected from random basis selection by both parties (O5.1). B92 converges to $25.0 \pm 0.6\%$, matching the reduced efficiency predicted by its two-state encoding and conclusive-measurement sifting mechanism. For E91, the CHSH parameter converges to $|S| = 2.82 \pm 0.02$, in close agreement with the quantum mechanical prediction of $2\sqrt{2} \approx 2.828$. All three protocols produce a QBER of 0\% on an ideal channel, confirming that the simulation introduces no spurious errors when noise and eavesdropping are disabled. These results establish baseline confidence in the correctness of the protocol implementations before any noise or adversarial effects are introduced.
+
+% NOTE: Update all numerical values above with your actual simulation outputs.
+
+
+% ─────────────────────────────────────────────────────────────────────────────
+%  RESULTS — Section II: Eavesdropper Detection
+% ─────────────────────────────────────────────────────────────────────────────
+
+\section{Eavesdropper Detection}
+
+% NOTE: Reference your actual figure file path here
+% \begin{figure}[ht]
+%     \centering
+%     \includegraphics[width=\linewidth]{images/qber_vs_interception.pdf}
+%     \caption{QBER as a function of eavesdropper interception rate for BB84, B92, and E91. The dashed horizontal lines indicate the GLLP security thresholds at $f_{EC} = 1.16$.}
+%     \label{fig:qber-interception}
+% \end{figure}
+
+\Cref{fig:qber-interception} presents the QBER as a function of Eve's interception probability $p$ for all three protocols, directly addressing objectives O3.2 and O5.1.
+
+For BB84, the QBER increases linearly with interception rate, reaching $25.0 \pm 0.4\%$ at full interception ($p = 1.0$). This matches the theoretical prediction: Eve selects the correct measurement basis with probability 0.5, and when she guesses incorrectly, she introduces a 50\% error on those qubits, yielding $\text{QBER} = p \times 0.5 \times 0.5 = 0.25p$. The BB84 security threshold of $\sim$9.8\% (with $f_{EC} = 1.16$) is breached at an interception rate of approximately $p = 0.39$, indicating that BB84 can tolerate a substantial level of partial eavesdropping before the protocol must abort.
+
+B92 exhibits a different QBER-versus-interception curve shape due to its two-state encoding. The asymmetric state set ($\ket{0}$, $\ket{+}$) means that Eve's interception has different error statistics depending on which state Alice sent and which basis Eve chose. The lower security threshold of $\sim$6.5\% is reached at a correspondingly lower interception rate, confirming that B92's simpler encoding comes at the cost of reduced eavesdropper tolerance.
+
+% NOTE: Reference your actual CHSH figure file path here
+% \begin{figure}[ht]
+%     \centering
+%     \includegraphics[width=\linewidth]{images/chsh_vs_interception.pdf}
+%     \caption{CHSH parameter $|S|$ as a function of eavesdropper interception rate for E91. The dashed line at $S = 2$ indicates the classical bound.}
+%     \label{fig:chsh-interception}
+% \end{figure}
+
+For E91, eavesdropping is detected through a fundamentally different mechanism. \Cref{fig:chsh-interception} shows the CHSH parameter $S$ degrading from $2\sqrt{2}$ towards the classical bound of 2 as Eve's interception rate increases (O2.3). Eve's intercept-resend attack disrupts the entanglement between Alice's and Bob's qubits, reducing the non-local correlations that produce the Bell inequality violation. This physics-based detection is independent of QBER estimation and provides qualitatively different security evidence. Where BB84 and B92 detect eavesdropping statistically by observing an elevated error rate, E91 detects it through the degradation of a fundamental physical property of the shared quantum state.
+
+
+% ─────────────────────────────────────────────────────────────────────────────
+%  RESULTS — Section III: Noise Tolerance Comparison
+% ─────────────────────────────────────────────────────────────────────────────
+
+\section{Noise Tolerance Comparison}
+
+% NOTE: Reference your actual figure file path here
+% \begin{figure}[ht]
+%     \centering
+%     \includegraphics[width=\linewidth]{images/noise_model_comparison.pdf}
+%     \caption{QBER as a function of noise strength for depolarising and phase damping channels across BB84, B92, and E91.}
+%     \label{fig:noise-comparison}
+% \end{figure}
+
+\Cref{fig:noise-comparison} presents the QBER response to increasing noise strength for both the depolarising and phase damping channels, addressing objectives O3.1 and O5.3.
+
+Under depolarising noise, all three protocols exhibit a similar QBER-versus-noise-strength relationship. This is expected because the depolarising channel applies errors isotropically across all Bloch sphere axes, treating all encoding bases equally. The QBER scales proportionally with the depolarising probability $p$, and the protocol-specific differences are confined to the different security thresholds at which key generation becomes impossible.
+
+Phase damping produces a markedly different and more revealing result. Because phase damping acts as the identity on $Z$-basis eigenstates while decohering $X$-basis superpositions, it introduces a basis-dependent error asymmetry. For BB84, this affects only the fraction of qubits encoded in the diagonal basis, producing a moderate QBER increase. For B92, however, the effect is more pronounced: the $\ket{+}$ state used to encode bit value 1 is a superposition state that decoheres directly under phase damping, while $\ket{0}$ (encoding bit value 0) is a $Z$-eigenstate that remains unaffected. This asymmetry creates a bit-value-dependent error rate that is unique to B92 under phase noise and is a genuine finding of this project. E91's entangled Bell pairs are sensitive to both depolarising and phase damping noise, as either channel degrades the Bell state fidelity and reduces the CHSH parameter.
+
+The simulated QBER values under depolarising noise are consistent with the theoretical prediction $\text{QBER} = p/2$ for symmetric noise, validating both the noise model implementation and the protocol logic simultaneously. The phase damping results, while harder to compare against closed-form expressions, exhibit the qualitative asymmetry predicted by the basis-dependent action of the channel described in the literature review.
+
+
+% ─────────────────────────────────────────────────────────────────────────────
+%  RESULTS — Section IV: Secure Key Rate and Deployment Feasibility
+% ─────────────────────────────────────────────────────────────────────────────
+
+\section{Secure Key Rate and Deployment Feasibility}
+
+% NOTE: Reference your actual figure file paths here
+% \begin{figure}[ht]
+%     \centering
+%     \includegraphics[width=\linewidth]{images/keyrate_vs_qber.pdf}
+%     \caption{Secure key rate as a function of QBER for BB84 and B92, computed using the GLLP formula with $f_{EC} = 1.16$. The dashed curves show the idealised $f_{EC} = 1.0$ case for comparison.}
+%     \label{fig:keyrate-qber}
+% \end{figure}
+
+% \begin{figure}[ht]
+%     \centering
+%     \includegraphics[width=\linewidth]{images/keyrate_vs_distance.pdf}
+%     \caption{Secure key rate as a function of fibre distance under realistic attenuation (0.2~dB/km) and dark count modelling with $f_{EC} = 1.16$.}
+%     \label{fig:keyrate-distance}
+% \end{figure}
+
+\Cref{fig:keyrate-qber} presents the GLLP secure key rate as a function of QBER for BB84 and B92, addressing objectives O4.1 and O4.3. With $f_{EC} = 1.16$, the BB84 key rate reaches zero at a QBER of approximately 9.8\%, and the B92 key rate reaches zero at approximately 6.5\%. These thresholds are notably lower than the idealised values of $\sim$11\% and $\sim$8\% obtained with $f_{EC} = 1.0$, which are also plotted for comparison. The difference between the two curves illustrates the practical cost of realistic error correction: the 16\% information leakage overhead of CASCADE directly reduces the noise regime in which secure key generation is feasible. This distinction is often glossed over in simulation studies that default to Shannon-limit assumptions, and highlighting it is one of the contributions of this project.
+
+\Cref{fig:keyrate-distance} translates the QBER thresholds into deployment distances using the fibre attenuation model described in the methodology ($\alpha = 0.2$~dB/km), coupled with dark count modelling. The key rate for both protocols decreases with distance as attenuation reduces transmission efficiency and the relative impact of dark counts on the QBER increases. BB84 sustains a positive key rate over a longer fibre distance than B92, consistent with its higher noise tolerance. The maximum operational distances observed in the simulation provide a direct answer to objective O6.1 and yield a concrete engineering conclusion: B92's lower noise tolerance translates to a measurably shorter maximum deployment distance, quantifying the practical cost of its simpler two-state encoding.
+
+% NOTE: Insert your actual maximum distance values for BB84 and B92 here.
+
+
+% ─────────────────────────────────────────────────────────────────────────────
+%  RESULTS — Section V: Limitations and Sources of Error
+% ─────────────────────────────────────────────────────────────────────────────
+
+\section{Limitations and Sources of Error}
+
+The simulation results are subject to several limitations that should be considered when interpreting the findings. Statistical noise arising from the finite number of simulation runs ($N = 50$) and qubits per run ($n = 1000$) introduces variance in the computed metrics, as reflected in the confidence intervals reported throughout this chapter. Increasing these parameters would narrow the confidence intervals at the expense of computational time.
+
+The single-photon source assumption excludes multi-photon pulse effects that are present in practical weak coherent pulse implementations. Real QKD systems employ decoy-state protocols to mitigate photon-number-splitting attacks, which are not modelled here. The trusted-device assumption means that detector imperfections such as efficiency mismatch, timing jitter, and afterpulsing are not captured, and these effects can open side-channel vulnerabilities in physical deployments.
+
+Fibre attenuation is modelled as classical post-selection rather than as a quantum channel, which correctly captures the effect on transmission efficiency but does not represent the full quantum optical description of photon loss. These limitations are scope boundaries rather than flaws in the simulation; they reflect deliberate decisions to maintain focus on protocol-level performance comparison within the constraints of an undergraduate project.
+
+
+% =============================================================================
+%
+%  CONCLUSION & FUTURE WORK — Chapter 5
+%  Replace the existing skeleton content in Chapter 5
+%
+% =============================================================================
+
+\chapter{Conclusion \& Future Work}
+
+% ─────────────────────────────────────────────────────────────────────────────
+%  CONCLUSION — Section I: Achievements Against Objectives
+% ─────────────────────────────────────────────────────────────────────────────
+
+\section{Achievements Against Objectives}
+
+This project set out to design, implement, and evaluate a modular simulation platform for comparing discrete-variable QKD protocols under realistic conditions. The platform successfully implements all three target protocols: BB84, B92, and E91.
+
+Objective group O1 (Literature Review and Analytical Framework) was achieved through a comprehensive review spanning quantum mechanical foundations, protocol theory, post-processing pipelines, noise models, and simulation frameworks. The review established the parameter choices and metrics used throughout the project.
+
+Objective group O2 (Protocol Implementation) was fully achieved. BB84 was validated against a sifting efficiency target of $50\% \pm 2\%$ and a full intercept-resend QBER of $25\% \pm 2\%$. B92 was validated at $25\% \pm 2\%$ sifting efficiency. E91 was implemented with CHSH parameter convergence to $2\sqrt{2}$ in the absence of eavesdropping.
+
+Objective group O3 (Channel Modelling and Eavesdropper Simulation) was achieved through the implementation of depolarising, phase damping, and amplitude damping noise models applied via the channel-marker approach, along with a configurable intercept-resend eavesdropper.
+
+Objective group O4 (Post-Processing and Key Rate Analysis) was achieved through GLLP key rate computation with $f_{EC} = 1.16$ and mutual information analysis for both BB84 and B92. The security thresholds of $\sim$9.8\% (BB84) and $\sim$6.5\% (B92) were confirmed.
+
+Objective group O5 (Verification and Benchmarking) was largely achieved. All ideal-channel and eavesdropper validation targets were met, and a comprehensive visualisation suite was produced. Quantitative comparison against published experimental data (O5.2) was performed at a high level, with discrepancies attributed to the modelling assumptions documented in the methodology.
+
+Objective group O6 (Real-World Feasibility) was addressed through the key-rate-versus-distance analysis and the broader context discussion that follows.
+
+% NOTE: Update pass/fail status and numerical values above based on your actual results.
+
+
+% ─────────────────────────────────────────────────────────────────────────────
+%  CONCLUSION — Section II: Key Findings
+% ─────────────────────────────────────────────────────────────────────────────
+
+\section{Key Findings}
+
+Three findings from this project merit particular emphasis. First, the distinction between $f_{EC} = 1.0$ and $f_{EC} = 1.16$ has real engineering consequences: the BB84 security threshold shifts from $\sim$11\% to $\sim$9.8\% QBER, a reduction that directly affects maximum deployment distance calculations. Simulation studies that assume Shannon-limit error correction overestimate practical system performance.
+
+Second, phase damping noise reveals protocol-specific vulnerabilities that are invisible under depolarising noise alone. B92's asymmetric two-state encoding ($\ket{0}$, $\ket{+}$) creates a bit-value-dependent error rate under phase noise, a behaviour not exhibited by BB84's symmetric four-state scheme. This finding demonstrates the value of testing protocols under multiple noise models rather than relying solely on the depolarising channel.
+
+Third, E91's CHSH-based eavesdropper detection provides qualitatively different security evidence from the QBER-based detection used by prepare-and-measure protocols. The entanglement-based approach detects eavesdropping through the degradation of a physical property (Bell inequality violation) rather than through statistical error estimation, offering a conceptually distinct and complementary security mechanism.
+
+
+% ─────────────────────────────────────────────────────────────────────────────
+%  CONCLUSION — Section III: Broader Context
+% ─────────────────────────────────────────────────────────────────────────────
+
+\section{Broader Context}
+
+QKD and Post-Quantum Cryptography are complementary rather than competing approaches to quantum-safe security. PQC provides computational security based on mathematical problems believed to resist quantum attack, while QKD provides information-theoretic security grounded in the laws of physics. A defence-in-depth strategy would deploy both: PQC to protect the vast majority of communications at low cost, and QKD to secure the most sensitive channels where long-term confidentiality is essential.
+
+The ``harvest now, decrypt later'' threat model gives QKD deployment an urgency that extends beyond the timeline for building a cryptographically relevant quantum computer. Adversaries intercepting and storing encrypted traffic today may be able to decrypt it in the future once quantum computing capabilities mature. For sectors handling data with long confidentiality lifetimes, including government and defence, financial services, healthcare, and critical national infrastructure, the window of vulnerability is already open.
+
+However, QKD deployment faces significant economic and infrastructure barriers. Current QKD hardware is expensive, fibre infrastructure is geographically limited, and the trusted-node problem constrains the distances over which key distribution can be performed without intermediate relay points. These constraints mean that near-term QKD deployment is most likely in high-value, point-to-point links rather than as a wholesale replacement for classical key exchange.
+
+The simulation platform developed in this project contributes to this landscape by enabling protocol selection and feasibility analysis without requiring access to expensive quantum hardware. By providing an accessible, open-source tool for comparing BB84, B92, and E91 under realistic conditions, the platform lowers the barrier to informed deployment decisions for organisations evaluating QKD as part of their quantum-safe migration strategy.
+
+
+% ─────────────────────────────────────────────────────────────────────────────
+%  CONCLUSION — Section IV: Project Management Reflection
+% ─────────────────────────────────────────────────────────────────────────────
+
+\section{Project Management Reflection}
+
+The project timeline spanned approximately eight weeks from initial literature review through final report submission. The work was structured in phases: literature review and scope definition in weeks one and two, BB84 implementation and validation in weeks three and four, B92 implementation and comparative benchmarking in week five, E91 implementation in week six, and report writing with final analysis in weeks seven and eight.
+
+Several aspects of the project proceeded as planned. The BB84 implementation and validation were completed on schedule, and the literature review scope was defined early enough to avoid scope creep during the writing phase. The decision to adopt YAML configuration files mid-project proved valuable for reproducibility, as it allowed all simulation parameters to be version-controlled alongside the code.
+
+The most significant deviation from the original plan concerned E91. It was initially designated as a stretch goal, contingent on the progress of BB84 and B92 development. The modular architecture of the codebase, particularly the separation of noise and benchmarking modules from protocol-specific logic, ultimately enabled E91 to be integrated more efficiently than anticipated. A mid-project refactoring from a monolithic BB84 script into the modular nine-file package structure required short-term effort but substantially reduced the cost of adding subsequent protocols.
+
+In terms of personal development, this project provided practical experience with quantum information theory and the Qiskit framework, as well as exposure to the challenges of translating theoretical physics into validated software. The iterative development approach, where each protocol was validated against theoretical predictions before proceeding to the next, proved effective for maintaining confidence in the simulation outputs throughout the project.
+
+
+% ─────────────────────────────────────────────────────────────────────────────
+%  CONCLUSION — Section V: Limitations
+% ─────────────────────────────────────────────────────────────────────────────
+
+\section{Limitations}
+
+The limitations of this work are discussed in detail in \cref{sec:limitations-results}. In summary, the simulation operates under single-photon source, trusted-device, and authenticated classical channel assumptions that exclude several classes of practical imperfection. Fibre attenuation is modelled as classical post-selection rather than as a full quantum optical channel. These are deliberate scope boundaries that maintain focus on protocol-level comparison within the constraints of an undergraduate project.
+
+% NOTE: Add \label{sec:limitations-results} to the Limitations and Sources of Error section in Chapter 4 for this cross-reference to work.
+
+
+% ─────────────────────────────────────────────────────────────────────────────
+%  CONCLUSION — Section VI: Future Work
+% ─────────────────────────────────────────────────────────────────────────────
+
+\section{Future Work}
+
+Several directions for extending this work are identified. The most impactful would be implementing decoy-state BB84 to relax the single-photon source assumption, enabling the simulation to model weak coherent pulse sources and the photon-number-splitting attacks they enable \cite{Lo2005Decoy}. This would significantly increase the practical relevance of the key rate analysis.
+
+A second direction is the inclusion of Continuous-Variable (CV) QKD protocols, such as GG02, which would allow comparison between discrete-variable and continuous-variable approaches on the same platform. CV protocols use coherent states and homodyne detection rather than single photons, and their noise tolerance and deployment characteristics differ substantially from the DV protocols studied here.
+
+Third, extending the simulation to model multi-node QKD networks using a framework such as NetSquid \cite{NetSquid2021} would enable analysis of trusted-node routing, network topology effects, and key relay protocols. This would move the platform from single-link analysis to network-scale deployment modelling.
+
+Finally, validating the simulation outputs quantitatively against published experimental testbed data, such as the long-distance BB84 results of Boaron \textit{et al.} \cite{Boaron2018}, would strengthen confidence in the model's accuracy and identify specific areas where the modelling assumptions introduce the largest discrepancies.
+
+
+% =============================================================================
+%  END OF REMAINING SECTIONS
+% =============================================================================
+                

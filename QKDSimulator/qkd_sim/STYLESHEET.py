@@ -16,12 +16,12 @@ class PlotStyle:
     """All visual parameters for QKD plots."""
 
     # Fonts
-    font_family: str = "DM Sans"
-    font_size_base: int = 16
-    font_size_axis_label: int = 20
-    font_size_title: int = 22
-    font_size_tick: int = 18
-    font_size_legend: int = 14
+    font_family: str = "Times New Roman"
+    font_size_base: int = 14
+    font_size_axis_label: int = 18
+    font_size_title: int = 20
+    font_size_tick: int = 16
+    font_size_legend: int = 12
     font_weight_title: str = "bold"
     font_weight_axis_label: str = "bold"
 
@@ -39,12 +39,12 @@ class PlotStyle:
     noise_colours: Dict[str, str] = field(default_factory=lambda: {
         'none': '#0e365f',
         'depolarizing': '#dd1634',
-        'bitflip': '#e8594d',
+        'bitflip': "#ff9500",
         'phaseflip': '#1a5c8a',
         'amplitude_damping': '#a01228',
         'phase_damping': '#2980b9',
     })
-    default_colour: str = '#dd1634'
+    default_colour: str = '#0e365f'
 
     # Noise model markers
     noise_markers: Dict[str, str] = field(default_factory=lambda: {
@@ -59,8 +59,8 @@ class PlotStyle:
 
     # Protocol colours (multi-protocol comparison)
     protocol_colours: Dict[str, str] = field(default_factory=lambda: {
-        'BB84': '#dd1634',
-        'B92':  '#1a5c8a',
+        'BB84': '#0e365f',
+        'B92':  '#ff9500',
         'E91':  '#22a043',
     })
     protocol_markers: Dict[str, str] = field(default_factory=lambda: {
@@ -86,7 +86,7 @@ class PlotStyle:
     theory_alpha: float = 0.7
 
     # Security threshold lines
-    threshold_colour: str = "#22e300"
+    threshold_colour: str = "#ff0000"
     threshold_linestyle_horizontal: str = "--"
     threshold_linestyle_vertical: str = ":"
     threshold_linewidth: float = 1.5
@@ -95,9 +95,10 @@ class PlotStyle:
 
     # Grid and legend
     grid_alpha: float = 0.3
-    legend_framealpha: float = 0.9
+    legend_framealpha: float = 0.8
     legend_loc_qber: str = "upper left"
-    legend_loc_keyrate: str = "center right"
+    legend_loc_keyrate: str = "upper center"
+
 
     # Title padding
     title_pad: int = 15
@@ -105,7 +106,8 @@ class PlotStyle:
     def get_rcparams(self) -> dict:
         """Return a dict suitable for plt.rcParams.update()."""
         return {
-            'font.family': self.font_family,
+            'font.family': 'serif',
+            'font.serif': [self.font_family],
             'font.size': self.font_size_base,
             'axes.labelsize': self.font_size_axis_label,
             'axes.titlesize': self.font_size_title,

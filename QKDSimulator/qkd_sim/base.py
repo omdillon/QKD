@@ -1,8 +1,11 @@
 """
 Abstract base classes for QKD protocol implementations.
 
-QKDResult: base result container.
+QKDResult: base result container with Shor-Preskill secure key rate (BB84 default).
 QKDProtocol: abstract contract all protocols inherit from.
+
+Subclasses may override secure_key_rate and theoretical_secure_key_rate to
+use protocol-appropriate bounds (e.g. B92 QBER cap, E91 CHSH-based DIQKD rate).
 """
 
 from abc import ABC, abstractmethod

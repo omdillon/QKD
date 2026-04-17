@@ -1,0 +1,12 @@
+mode: sweep
+protocol: e91
+n_qubits: 1000
+n_trials: 20
+f_ec: 1
+noise_type: depolarizing
+noise_min: 0.0
+noise_max: 0.30
+noise_steps: 20
+e91_channel_topology: both
+output_dir: ./results/e91_depolarizing
+save_plots: true

@@ -97,6 +97,12 @@ def run_sweep(config):
                 save_path=output_dir / f'chsh_vs_{config.noise_type}.png' if config.save_plots else None,
                 show=config.show_plots,
             )
+            plotter.plot_chsh_qber_vs_noise(
+                data,
+                channel_topology=config.e91_channel_topology,
+                save_path=output_dir / f'chsh_qber_vs_{config.noise_type}.png' if config.save_plots else None,
+                show=config.show_plots,
+            )
 
 
 def run_eve_sweep(config):
@@ -131,6 +137,15 @@ def run_eve_sweep(config):
             save_path=output_dir / 'keyrate_vs_eve_rate.png' if config.save_plots else None,
             show=config.show_plots,
         )
+
+        if config.noise_type != 'none' and config.noise_strength > 0:
+            plotter.plot_qber_noisy_eve(
+                data, noise_strength=config.noise_strength,
+                protocol_class=protocol_class,
+                save_path=output_dir / f'qber_noisy_eve_{config.noise_type}_p{config.noise_strength:.3f}.png'
+                    if config.save_plots else None,
+                show=config.show_plots,
+            )
 
 
 def run_protocol_comparison(config):

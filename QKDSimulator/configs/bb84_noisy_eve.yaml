@@ -1,0 +1,12 @@
+mode: eve_sweep
+protocol: bb84
+n_qubits: 1000
+n_trials: 20
+noise_type: depolarizing
+noise_strength: 0.05
+f_ec: 1
+eve_min: 0.0
+eve_max: 1.0
+eve_steps: 20
+output_dir: ./results/bb84_noisy_eve
+save_plots: true

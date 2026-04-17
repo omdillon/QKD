@@ -14,6 +14,11 @@ Measurement angles (Ekert 1991):
 Channel topology:
     'both': noise on both qubits independently (V^2 = (1-p)^2)
     'bob':  noise on Bob's qubit only (V = 1-p, matches BB84)
+
+Security bound: Device-independent CHSH-based key rate from
+Acin, Brunner, Gisin, Massar, Pironio, Scarani, PRL 98, 230501 (2007).
+Security requires Bell violation (|S| > 2) AND positive key rate.
+f_ec is not applied in the standard DIQKD formulation.
 """
 
 from dataclasses import dataclass, field
@@ -52,6 +57,37 @@ class E91Result(QKDResult):
     @property
     def chsh_violation(self) -> bool:
         return self.abs_s > _CLASSICAL_BOUND
+
+    @staticmethod
+    def _chi_chsh(s: float) -> float:
+        """Eve's information bound for CHSH-based DIQKD (Acin et al. 2007).
+
+        chi(S) = h( (1 + sqrt((S/2)^2 - 1)) / 2 )  for |S| >= 2
+        chi(S) = 1                                    for |S| <  2
+        """
+        s = abs(s)
+        if s < _CLASSICAL_BOUND:
+            return 1.0
+        inner = (1.0 + np.sqrt((s / 2.0) ** 2 - 1.0)) / 2.0
+        return QKDResult._binary_entropy(inner)
+
+    @property
+    def secure_key_rate(self) -> float:
+        """E91 device-independent secure key rate (Acin et al. 2007).
+
+        r = R_sift * max(0, 1 - h(Q) - chi(S))
+
+        Note: f_ec is not applied in the standard DIQKD formulation.
+        Returns 0 if no Bell violation (|S| <= 2).
+        """
+        if self.sifted_length == 0:
+            return 0.0
+        if self.abs_s <= _CLASSICAL_BOUND:
+            return 0.0
+        h_q = self._binary_entropy(self.qber)
+        chi = self._chi_chsh(self.s_value)
+        secret_fraction = max(0.0, 1.0 - h_q - chi)
+        return self.key_rate * secret_fraction
 
 
 class E91Protocol(QKDProtocol):
@@ -134,9 +170,15 @@ class E91Protocol(QKDProtocol):
     def theoretical_secure_key_rate(cls, noise_type: str, strengths: np.ndarray,
                                     f_ec: float = 1.16,
                                     channel_topology: str = 'both') -> Optional[np.ndarray]:
-        """E91 Shor-Preskill secure key rate with topology-aware QBER."""
+        """E91 theoretical DIQKD secure key rate using CHSH bound (Acin et al. 2007).
+
+        r = sifting * max(0, 1 - h(Q) - chi(S))
+        where chi(S) = h((1 + sqrt((S/2)^2 - 1)) / 2) for |S| >= 2.
+        f_ec is not used in the standard DI formulation.
+        """
         qber = cls.theoretical_qber(noise_type, strengths, channel_topology)
-        if qber is None:
+        s = cls.theoretical_chsh(noise_type, strengths, channel_topology)
+        if qber is None or s is None:
             return None
         sifting = cls.theoretical_sifting_rate()
 
@@ -144,7 +186,13 @@ class E91Protocol(QKDProtocol):
             x = np.clip(x, 1e-15, 1.0 - 1e-15)
             return -x * np.log2(x) - (1 - x) * np.log2(1 - x)
 
-        return sifting * np.maximum(0.0, 1.0 - (1.0 + f_ec) * _h(qber))
+        s_abs = np.abs(s)
+        inner = (1.0 + np.sqrt(np.clip((s_abs / 2.0) ** 2 - 1.0, 0.0, None))) / 2.0
+        inner = np.clip(inner, 1e-15, 1.0 - 1e-15)
+        chi = np.where(s_abs < _CLASSICAL_BOUND, 1.0, _h(inner))
+
+        secret = np.maximum(0.0, 1.0 - _h(qber) - chi)
+        return sifting * secret
 
     def run(self) -> E91Result:
         """Run the full E91 protocol."""

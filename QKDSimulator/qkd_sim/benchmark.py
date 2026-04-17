@@ -8,6 +8,7 @@ aggregates QBER / key rate statistics for plotting.
 from dataclasses import dataclass
 from typing import List, Optional, Dict, Any, Type
 import numpy as np
+from tqdm import tqdm
 
 from .base import QKDProtocol, QKDResult
 from .noise import create_backend
@@ -58,10 +59,8 @@ class BenchmarkRunner:
         secure_rate_results = np.zeros((n_strengths, n_trials))
         chsh_results: Optional[np.ndarray] = None
 
-        for i, strength in enumerate(strengths):
-            print(f"  {protocol_class.protocol_name()} | "
-                  f"{noise_type} p={strength:.3f} [{i+1}/{n_strengths}]")
-
+        desc = f"{protocol_class.protocol_name()} {noise_type} sweep"
+        for i, strength in enumerate(tqdm(strengths, desc=desc, unit="pt")):
             backend = create_backend(noise_type, strength)
             eve = EveInterceptor(eve_rate) if with_eve else None
 
@@ -125,10 +124,8 @@ class BenchmarkRunner:
 
         backend = create_backend(noise_type, noise_strength)
 
-        for i, rate in enumerate(eve_rates):
-            print(f"  {protocol_class.protocol_name()} | "
-                  f"Eve rate={rate:.2f} [{i+1}/{n_rates}]")
-
+        desc = f"{protocol_class.protocol_name()} Eve sweep"
+        for i, rate in enumerate(tqdm(eve_rates, desc=desc, unit="pt")):
             eve = EveInterceptor(rate) if rate > 0 else None
 
             for j in range(n_trials):

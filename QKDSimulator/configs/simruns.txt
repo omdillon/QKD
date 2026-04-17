@@ -1,0 +1,28 @@
+# QKD Simulation Runs
+# Execute from the QKDSimulator/ directory (one level above configs/).
+
+----------          DONE          ----------
+-> solo noise
+python -m qkd_sim configs/bb84_sweep.yaml
+python -m qkd_sim configs/b92_sweep.yaml
+python -m qkd_sim configs/e91_sweep.yaml
+
+
+
+
+----------          TODO          ----------
+-> solo eve
+python -m qkd_sim configs/bb84_eve.yaml
+python -m qkd_sim configs/b92_eve.yaml
+
+
+-> solo noise + eve
+python -m qkd_sim configs/bb84_noisy_eve.yaml
+python -m qkd_sim configs/b92_noisy_eve.yaml
+
+
+-> multis
+python -m qkd_sim configs/baseline_comparison.yaml
+python -m qkd_sim configs/noise_comparison.yaml
+
+
