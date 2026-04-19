@@ -3,15 +3,17 @@ Entry point for QKD simulation platform.
 
 Usage:
     python -m qkd_sim configs/bb84_sweep.yaml
-    python -m qkd_sim configs/protocol_comparison.yaml --show-plots
+    python -m qkd_sim configs/noise_comparison.yaml --show-plots
+
+Dispatch is keyed on the YAML filename stem. Each experiment has a
+dedicated plotting method on QKDPlotter; see plotter.py.
 """
 
 import argparse
-import sys
 from pathlib import Path
 import numpy as np
 
-from .config import load_config, SimConfig
+from .config import load_config
 from .noise import create_backend
 from .eve import EveInterceptor
 from .benchmark import BenchmarkRunner
@@ -28,15 +30,31 @@ PROTOCOLS = {
 }
 
 
+# YAML stem -> (run-mode, QKDPlotter method name)
+EXPERIMENT_PLOTTERS = {
+    'bb84_sweep':       ('sweep',               'plot_bb84_sweep'),
+    'bb84_eve':         ('eve_sweep',           'plot_bb84_eve'),
+    'bb84_noisy_eve':   ('eve_sweep',           'plot_bb84_noisy_eve'),
+    'b92_sweep':        ('sweep',               'plot_b92_sweep'),
+    'b92_eve':          ('eve_sweep',           'plot_b92_eve'),
+    'b92_noisy_eve':    ('eve_sweep',           'plot_b92_noisy_eve'),
+    'e91_sweep':        ('sweep',               'plot_e91_sweep'),
+    'noise_comparison': ('protocol_comparison', 'plot_noise_comparison'),
+}
+
+
 def _e91_kwargs(config, protocol_name):
-    """Return extra kwargs for E91, empty dict for others."""
     if protocol_name.lower() == 'e91':
         return {'channel_topology': config.e91_channel_topology}
     return {}
 
 
+def _output_dir(config):
+    return Path(config.output_dir) if config.save_plots else None
+
+
 def run_single(config):
-    """Run a single protocol trial."""
+    """Run a single protocol trial (no plotting)."""
     protocol_class = PROTOCOLS[config.protocol]
     backend = create_backend(config.noise_type, config.noise_strength)
     eve = EveInterceptor(config.eve_rate) if config.eve_rate is not None else None
@@ -57,8 +75,8 @@ def run_single(config):
               f"(violation: {'YES' if result.chsh_violation else 'NO'})")
 
 
-def run_sweep(config):
-    """Run a noise strength sweep."""
+def run_sweep(config, plot_method_name):
+    """Run a noise strength sweep and dispatch to the per-experiment plot method."""
     protocol_class = PROTOCOLS[config.protocol]
     strengths = np.linspace(config.noise_min, config.noise_max, config.noise_steps)
 
@@ -75,38 +93,20 @@ def run_sweep(config):
         protocol_kwargs=_e91_kwargs(config, config.protocol),
     )
 
-    if config.save_plots or config.show_plots:
-        plotter = QKDPlotter(f_ec=config.f_ec)
-        output_dir = Path(config.output_dir)
-        output_dir.mkdir(parents=True, exist_ok=True)
+    if not (config.save_plots or config.show_plots):
+        return
 
-        plotter.plot_qber_vs_noise(
-            data, protocol_class=protocol_class,
-            save_path=output_dir / f'qber_vs_{config.noise_type}.png' if config.save_plots else None,
-            show=config.show_plots,
-        )
-        plotter.plot_key_rate_vs_noise(
-            data, protocol_class=protocol_class,
-            save_path=output_dir / f'keyrate_vs_{config.noise_type}.png' if config.save_plots else None,
-            show=config.show_plots,
-        )
-        if data.chsh_mean is not None:
-            plotter.plot_chsh_vs_noise(
-                data, protocol_class=protocol_class,
-                channel_topology=config.e91_channel_topology,
-                save_path=output_dir / f'chsh_vs_{config.noise_type}.png' if config.save_plots else None,
-                show=config.show_plots,
-            )
-            plotter.plot_chsh_qber_vs_noise(
-                data,
-                channel_topology=config.e91_channel_topology,
-                save_path=output_dir / f'chsh_qber_vs_{config.noise_type}.png' if config.save_plots else None,
-                show=config.show_plots,
-            )
+    plotter = QKDPlotter(f_ec=config.f_ec)
+    method = getattr(plotter, plot_method_name)
+    if config.protocol.lower() == 'e91':
+        method(data, output_dir=_output_dir(config), show=config.show_plots,
+               channel_topology=config.e91_channel_topology)
+    else:
+        method(data, output_dir=_output_dir(config), show=config.show_plots)
 
 
-def run_eve_sweep(config):
-    """Run an Eve interception rate sweep."""
+def run_eve_sweep(config, plot_method_name):
+    """Run an Eve interception rate sweep and dispatch to its plot method."""
     protocol_class = PROTOCOLS[config.protocol]
     eve_rates = np.linspace(config.eve_min, config.eve_max, config.eve_steps)
 
@@ -122,34 +122,20 @@ def run_eve_sweep(config):
         protocol_kwargs=_e91_kwargs(config, config.protocol),
     )
 
-    if config.save_plots or config.show_plots:
-        plotter = QKDPlotter(f_ec=config.f_ec)
-        output_dir = Path(config.output_dir)
-        output_dir.mkdir(parents=True, exist_ok=True)
+    if not (config.save_plots or config.show_plots):
+        return
 
-        plotter.plot_qber_vs_noise(
-            data, protocol_class=protocol_class,
-            save_path=output_dir / 'qber_vs_eve_rate.png' if config.save_plots else None,
-            show=config.show_plots,
-        )
-        plotter.plot_key_rate_vs_noise(
-            data, protocol_class=protocol_class,
-            save_path=output_dir / 'keyrate_vs_eve_rate.png' if config.save_plots else None,
-            show=config.show_plots,
-        )
-
-        if config.noise_type != 'none' and config.noise_strength > 0:
-            plotter.plot_qber_noisy_eve(
-                data, noise_strength=config.noise_strength,
-                protocol_class=protocol_class,
-                save_path=output_dir / f'qber_noisy_eve_{config.noise_type}_p{config.noise_strength:.3f}.png'
-                    if config.save_plots else None,
-                show=config.show_plots,
-            )
+    plotter = QKDPlotter(f_ec=config.f_ec)
+    method = getattr(plotter, plot_method_name)
+    if 'noisy_eve' in plot_method_name:
+        method(data, noise_strength=config.noise_strength,
+               output_dir=_output_dir(config), show=config.show_plots)
+    else:
+        method(data, output_dir=_output_dir(config), show=config.show_plots)
 
 
-def run_protocol_comparison(config):
-    """Run the same noise sweep across multiple protocols."""
+def run_protocol_comparison(config, plot_method_name):
+    """Run the same noise sweep across multiple protocols and dispatch to plot."""
     protocol_classes = [PROTOCOLS[name] for name in config.protocols]
     strengths = np.linspace(config.noise_min, config.noise_max, config.noise_steps)
 
@@ -169,19 +155,12 @@ def run_protocol_comparison(config):
         protocol_kwargs=proto_kwargs,
     )
 
-    if config.save_plots or config.show_plots:
-        plotter = QKDPlotter(f_ec=config.f_ec)
-        output_dir = Path(config.output_dir)
-        output_dir.mkdir(parents=True, exist_ok=True)
+    if not (config.save_plots or config.show_plots):
+        return
 
-        proto_class_map = {cls.protocol_name(): cls for cls in protocol_classes}
-
-        for kind, fname in (('qber', 'qber_comparison'), ('secure_key_rate', 'secure_key_rate_comparison')):
-            plotter.plot_protocol_comparison(
-                data_dict, kind=kind, protocol_classes=proto_class_map,
-                save_path=output_dir / f'{fname}.png' if config.save_plots else None,
-                show=config.show_plots,
-            )
+    plotter = QKDPlotter(f_ec=config.f_ec)
+    method = getattr(plotter, plot_method_name)
+    method(data_dict, output_dir=_output_dir(config), show=config.show_plots)
 
 
 def main():
@@ -197,13 +176,30 @@ def main():
     print(f"  Mode: {config.mode} | Protocol: {config.protocol} | "
           f"Qubits: {config.n_qubits} | Trials: {config.n_trials}")
 
-    dispatch = {
-        'single': run_single,
-        'sweep': run_sweep,
-        'eve_sweep': run_eve_sweep,
-        'protocol_comparison': run_protocol_comparison,
-    }
-    dispatch[config.mode](config)
+    if config.mode == 'single':
+        run_single(config)
+    else:
+        stem = Path(args.config_file).stem
+        if stem not in EXPERIMENT_PLOTTERS:
+            valid = ', '.join(sorted(EXPERIMENT_PLOTTERS.keys()))
+            raise ValueError(
+                f"Unknown experiment '{stem}'. Add it to EXPERIMENT_PLOTTERS "
+                f"in qkd_sim/__main__.py. Valid: {valid}"
+            )
+        expected_mode, plot_method_name = EXPERIMENT_PLOTTERS[stem]
+        if config.mode != expected_mode:
+            raise ValueError(
+                f"Config '{stem}' uses mode '{config.mode}' but experiment "
+                f"expects '{expected_mode}'"
+            )
+        if config.mode == 'sweep':
+            run_sweep(config, plot_method_name)
+        elif config.mode == 'eve_sweep':
+            run_eve_sweep(config, plot_method_name)
+        elif config.mode == 'protocol_comparison':
+            run_protocol_comparison(config, plot_method_name)
+        else:
+            raise ValueError(f"Unhandled mode: {config.mode}")
 
     if config.save_plots:
         print(f"  Plots saved to: {config.output_dir}/")

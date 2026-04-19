@@ -3,26 +3,39 @@
 
 ----------          DONE          ----------
 -> solo noise
+
 python -m qkd_sim configs/bb84_sweep.yaml
-python -m qkd_sim configs/b92_sweep.yaml
+
 python -m qkd_sim configs/e91_sweep.yaml
 
-
-
-
-----------          TODO          ----------
 -> solo eve
 python -m qkd_sim configs/bb84_eve.yaml
-python -m qkd_sim configs/b92_eve.yaml
-
 
 -> solo noise + eve
 python -m qkd_sim configs/bb84_noisy_eve.yaml
+
+-> multis
+python -m qkd_sim configs/noise_comparison.yaml
+
+python -m qkd_sim configs/b92_sweep.yaml
+python -m qkd_sim configs/b92_eve.yaml
 python -m qkd_sim configs/b92_noisy_eve.yaml
 
 
--> multis
-python -m qkd_sim configs/baseline_comparison.yaml
-python -m qkd_sim configs/noise_comparison.yaml
+----------          TODO v.2          ----------
 
+
+-> auto load command
+delete old directories when the new plots pass the standards...
+avoid confusing old plots with new high fidelity plots, correct titles
+
+
+
+------------            Powershell command              ------------
+cd "c:/Users/dillo/OneDrive/Documents/NCL/Year 3/QKD/QKDSimulator"
+$configs = "bb84_sweep","bb84_eve","bb84_noisy_eve","b92_sweep","b92_eve","b92_noisy_eve","e91_sweep","noise_comparison"
+foreach ($cfg in $configs) {
+    "`n===== Running $cfg ====="
+    python -m qkd_sim "configs/$cfg.yaml"
+} *>&1 | Tee-Object -FilePath results/_run_log.txt
 
