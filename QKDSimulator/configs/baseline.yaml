@@ -6,7 +6,8 @@
 #
 # Modes: single | sweep | eve_sweep | protocol_comparison
 # Protocols: bb84 | b92 | e91
-# Noise types: none | depolarizing
+# Noise types: none | depolarizing | bitflip | phaseflip
+#              | amplitude_damping | phase_damping
 # ============================================================
 
 mode: single
@@ -31,7 +32,7 @@ mode: single
 # --- Noise sweep range (sweep / protocol_comparison) ---
 # noise_min: 0.0
 # noise_max: 0.30
-# noise_steps: 21
+# noise_steps: 30
 
 # --- Eve ---
 # eve_rate: null           # null = no eavesdropper, 0.0-1.0
@@ -39,7 +40,7 @@ mode: single
 # --- Eve sweep range (eve_sweep mode) ---
 # eve_min: 0.0
 # eve_max: 1.0
-# eve_steps: 11
+# eve_steps: 25
 
 # --- E91-specific ---
 # e91_channel_topology: both   # 'both' or 'bob'
@@ -48,3 +49,16 @@ mode: single
 # output_dir: ./results
 # save_plots: true
 # show_plots: false
+
+mode: protocol_comparison
+protocols:
+  - bb84
+  - b92
+  - e91
+n_qubits: 1000
+n_trials: 20
+noise_type: none
+e91_channel_topology: both
+output_dir: ./results/noise_comparison
+save_plots: true
+

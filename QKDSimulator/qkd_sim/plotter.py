@@ -14,9 +14,6 @@ import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
 
 from .benchmark import BenchmarkData
-from .protocols.bb84 import BB84Protocol
-from .protocols.b92 import B92Protocol
-from .protocols.e91 import E91Protocol
 from .STYLESHEET import STYLE
 
 
@@ -35,7 +32,7 @@ _QBER_THRESHOLDS = {'BB84': 0.110, 'B92': 0.065}
 
 
 def _eve_crossing_rate(eve_rates, qber_mean, threshold):
-    """Linear-interpolate the Eve rate at which simulated QBER first meets threshold."""
+    """Linear-interpolation for the Eve rate at which QBER first meets threshold."""
     y = np.asarray(qber_mean)
     above = np.where(y >= threshold)[0]
     if len(above) == 0 or above[0] == 0:
@@ -51,8 +48,7 @@ def _eve_crossing_rate(eve_rates, qber_mean, threshold):
 class QKDPlotter:
     """One plotting method per experiment config."""
 
-    def __init__(self, f_ec: float = 1.16):
-        self.f_ec = f_ec
+    def __init__(self):
         try:
             plt.style.use(STYLE.mpl_style)
         except OSError:
@@ -66,11 +62,10 @@ class QKDPlotter:
     def plot_bb84_sweep(self, data: BenchmarkData,
                         output_dir: Optional[Path] = None,
                         show: bool = False) -> None:
-        """BB84 depolarising-noise sweep: QBER and secure key rate."""
+        """BB84 depolarising-noise sweep: QBER and mutual information."""
         colour = STYLE.protocol_colours['BB84']
         marker = STYLE.protocol_markers['BB84']
         threshold = _QBER_THRESHOLDS['BB84']
-        theory_x = np.linspace(data.parameter_values.min(), data.parameter_values.max(), 200)
 
         # --- QBER figure ---
         fig, ax = plt.subplots(figsize=STYLE.figsize_single)
@@ -82,10 +77,6 @@ class QKDPlotter:
             markersize=STYLE.errorbar_markersize, color=colour, ecolor=colour,
             alpha=STYLE.errorbar_alpha, label='Depolarising Channel',
         )
-        theory_y = BB84Protocol.theoretical_qber('depolarizing', theory_x)
-        ax.plot(theory_x, theory_y, STYLE.theory_linestyle, color=colour,
-                alpha=STYLE.theory_alpha, linewidth=STYLE.theory_linewidth,
-                label='Depolarising Channel (Theoretical)')
         ax.axhline(y=threshold, color=STYLE.threshold_colour,
                    linestyle=STYLE.threshold_linestyle_horizontal,
                    linewidth=STYLE.threshold_linewidth,
@@ -105,45 +96,26 @@ class QKDPlotter:
         plt.tight_layout()
         self._finalise(fig, output_dir, 'qber.png', show)
 
-        # --- Secure key rate figure ---
-        fig, ax = plt.subplots(figsize=STYLE.figsize_single)
-        y = data.secure_key_rate_mean * 100
-        y_err = data.secure_key_rate_std / np.sqrt(data.n_trials) * 100
-        ax.errorbar(
-            data.parameter_values, y, yerr=y_err,
-            fmt=f'{marker}-', capsize=STYLE.errorbar_capsize,
-            capthick=STYLE.errorbar_capthick, linewidth=STYLE.errorbar_linewidth,
-            markersize=STYLE.errorbar_markersize, color=colour, ecolor=colour,
-            alpha=STYLE.errorbar_alpha, label='Depolarising channel (simulation)',
+        # --- Mutual information figure ---
+        self._plot_mutual_info(
+            data, colour, marker,
+            xlabel='Depolarising Noise Strength',
+            title=(f'BB84 Protocol - Depolarising Channel - Mutual Information\n'
+                   f'({data.n_qubits} qubits, {data.n_trials} trials per point)'),
+            x_pad=0.005,
+            output_dir=output_dir, show=show,
         )
-        theory_y = BB84Protocol.theoretical_secure_key_rate(
-            'depolarizing', theory_x, f_ec=self.f_ec)
-        ax.plot(theory_x, theory_y * 100, STYLE.theory_linestyle, color=colour,
-                alpha=STYLE.theory_alpha, linewidth=STYLE.theory_linewidth,
-                label='Depolarising Channel (Theoretical)')
-        theory_qber = BB84Protocol.theoretical_qber('depolarizing', data.parameter_values)
-        idx = int(np.searchsorted(theory_qber, threshold))
-        if 0 < idx < len(data.parameter_values):
-            p_crit = float(data.parameter_values[idx])
-            ax.axvline(x=p_crit, color=STYLE.threshold_colour,
-                       linestyle=STYLE.threshold_linestyle_vertical,
-                       linewidth=STYLE.threshold_linewidth,
-                       alpha=STYLE.threshold_alpha_vertical,
-                       label=f'QBER Threshold = {threshold:.1%} @ Intercept Rate = \u2248 {p_crit:.2f}')
-        ax.set_xlabel('Depolarising Noise Strength', fontweight=STYLE.font_weight_axis_label)
-        ax.set_ylabel('Secure Key Rate (bits per 100 qubits)',
-                       fontweight=STYLE.font_weight_axis_label)
-        ax.set_title(
-            f'BB84 Protocol - Depolarising Channel - Secure Key Rate\n'
-            f'({data.n_qubits} qubits, {data.n_trials} trials, '
-            f'Shor-Preskill Bound @ $f_{{EC}}$ = {self.f_ec})',
-            fontweight=STYLE.font_weight_title, pad=STYLE.title_pad)
-        ax.set_xlim(data.parameter_values.min() - 0.005, data.parameter_values.max() + 0.005)
-        ax.set_ylim(0, y.max() * 1.15)
-        ax.grid(True, alpha=STYLE.grid_alpha)
-        ax.legend(loc=STYLE.legend_loc_keyrate, framealpha=STYLE.legend_framealpha)
-        plt.tight_layout()
-        self._finalise(fig, output_dir, 'keyrate.png', show)
+
+        # --- GLLP secure key rate figure ---
+        if data.gllp_mean is not None:
+            self._plot_gllp(
+                data, colour, marker,
+                xlabel='Depolarising Noise Strength',
+                title=(f'BB84 Protocol - Depolarising Channel - GLLP Secure Key Rate\n'
+                       f'({data.n_qubits} qubits, {data.n_trials} trials per point)'),
+                x_pad=0.005,
+                output_dir=output_dir, show=show,
+            )
 
     def plot_bb84_eve(self, data: BenchmarkData,
                       output_dir: Optional[Path] = None,
@@ -152,6 +124,7 @@ class QKDPlotter:
         colour = STYLE.protocol_colours['BB84']
         marker = STYLE.protocol_markers['BB84']
         threshold = _QBER_THRESHOLDS['BB84']
+        e_crit = _eve_crossing_rate(data.parameter_values, data.qber_mean, threshold)
 
         # --- QBER figure ---
         fig, ax = plt.subplots(figsize=STYLE.figsize_single)
@@ -168,7 +141,6 @@ class QKDPlotter:
                    linewidth=STYLE.threshold_linewidth,
                    alpha=STYLE.threshold_alpha_horizontal,
                    label=f'BB84 Security Threshold ({threshold:.1%})')
-        e_crit = _eve_crossing_rate(data.parameter_values, data.qber_mean, threshold)
         if e_crit is not None:
             ax.axvline(x=e_crit, color=STYLE.threshold_colour,
                        linestyle=STYLE.threshold_linestyle_vertical,
@@ -189,37 +161,15 @@ class QKDPlotter:
         plt.tight_layout()
         self._finalise(fig, output_dir, 'qber.png', show)
 
-        # --- Secure key rate figure ---
-        fig, ax = plt.subplots(figsize=STYLE.figsize_single)
-        y = data.secure_key_rate_mean * 100
-        y_err = data.secure_key_rate_std / np.sqrt(data.n_trials) * 100
-        ax.errorbar(
-            data.parameter_values, y, yerr=y_err,
-            fmt=f'{marker}-', capsize=STYLE.errorbar_capsize,
-            capthick=STYLE.errorbar_capthick, linewidth=STYLE.errorbar_linewidth,
-            markersize=STYLE.errorbar_markersize, color=colour, ecolor=colour,
-            alpha=STYLE.errorbar_alpha, label='Intercept-Resend Attack',
+        # --- Mutual information figure ---
+        self._plot_mutual_info(
+            data, colour, marker,
+            xlabel='Eve Interception Rate',
+            title=(f'BB84 Protocol - Intercept-Resend Attack - Mutual Information\n'
+                   f'({data.n_qubits} qubits, {data.n_trials} trials per point)'),
+            x_pad=0.01,
+            output_dir=output_dir, show=show,
         )
-        if e_crit is not None:
-            ax.axvline(x=e_crit, color=STYLE.threshold_colour,
-                       linestyle=STYLE.threshold_linestyle_vertical,
-                       linewidth=STYLE.threshold_linewidth,
-                       alpha=STYLE.threshold_alpha_vertical,
-                       label=f'QBER Threshold = {threshold:.1%} @ Intercept Rate = \u2248 {e_crit:.2f}')
-        ax.set_xlabel('Eve Interception Rate', fontweight=STYLE.font_weight_axis_label)
-        ax.set_ylabel('Secure Key Rate (bits per 100 qubits)',
-                       fontweight=STYLE.font_weight_axis_label)
-        ax.set_title(
-            f'BB84 Protocol - Intercept-Resend Attack - Secure Key Rate\n'
-            f'({data.n_qubits} qubits, {data.n_trials} trials, '
-            f'Shor-Preskill Bound @ $f_{{EC}}$ = {self.f_ec})',
-            fontweight=STYLE.font_weight_title, pad=STYLE.title_pad)
-        ax.set_xlim(data.parameter_values.min() - 0.01, data.parameter_values.max() + 0.01)
-        ax.set_ylim(0, max(y.max() * 1.15, 1.0))
-        ax.grid(True, alpha=STYLE.grid_alpha)
-        ax.legend(loc='upper right', framealpha=STYLE.legend_framealpha)
-        plt.tight_layout()
-        self._finalise(fig, output_dir, 'keyrate.png', show)
 
     def plot_bb84_noisy_eve(self, data: BenchmarkData, noise_strength: float,
                             output_dir: Optional[Path] = None,
@@ -229,6 +179,7 @@ class QKDPlotter:
         marker = STYLE.protocol_markers['BB84']
         threshold = _QBER_THRESHOLDS['BB84']
         p_label = f'Depolarising Noise Strength (p = {noise_strength:.3f})'
+        e_crit = _eve_crossing_rate(data.parameter_values, data.qber_mean, threshold)
 
         # --- QBER figure ---
         fig, ax = plt.subplots(figsize=STYLE.figsize_single)
@@ -245,7 +196,6 @@ class QKDPlotter:
                    linewidth=STYLE.threshold_linewidth,
                    alpha=STYLE.threshold_alpha_horizontal,
                    label=f'BB84 Security Threshold ({threshold:.1%})')
-        e_crit = _eve_crossing_rate(data.parameter_values, data.qber_mean, threshold)
         if e_crit is not None:
             ax.axvline(x=e_crit, color=STYLE.threshold_colour,
                        linestyle=STYLE.threshold_linestyle_vertical,
@@ -258,7 +208,6 @@ class QKDPlotter:
             f'BB84 Protocol - Intercept-Resend Attack + {p_label} - QBER\n'
             f'({data.n_qubits} qubits, {data.n_trials} trials per point)',
             fontweight=STYLE.font_weight_title, pad=STYLE.title_pad)
-        
         ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda v, _: f'{v:.0%}'))
         ax.set_xlim(data.parameter_values.min() - 0.01, data.parameter_values.max() + 0.01)
         ax.set_ylim(0, min(max(data.qber_mean.max() * 1.3, threshold * 1.5), 0.5))
@@ -267,40 +216,15 @@ class QKDPlotter:
         plt.tight_layout()
         self._finalise(fig, output_dir, 'qber.png', show)
 
-        # --- Secure key rate figure ---
-        fig, ax = plt.subplots(figsize=STYLE.figsize_single)
-        y = data.secure_key_rate_mean * 100
-        y_err = data.secure_key_rate_std / np.sqrt(data.n_trials) * 100
-        ax.errorbar(
-            data.parameter_values, y, yerr=y_err,
-            fmt=f'{marker}-', capsize=STYLE.errorbar_capsize,
-            capthick=STYLE.errorbar_capthick, linewidth=STYLE.errorbar_linewidth,
-            markersize=STYLE.errorbar_markersize, color=colour, ecolor=colour,
-            alpha=STYLE.errorbar_alpha, label=f'Intercept-Resend Attack + {p_label}')
-        
-        if e_crit is not None:
-            ax.axvline(x=e_crit, color=STYLE.threshold_colour,
-                       linestyle=STYLE.threshold_linestyle_vertical,
-                       linewidth=STYLE.threshold_linewidth,
-                       alpha=STYLE.threshold_alpha_vertical,
-                       label=f'QBER Threshold = {threshold:.1%} @ Intercept Rate = \u2248 {e_crit:.2f}')
-        ax.set_xlabel('Eve Interception Rate', fontweight=STYLE.font_weight_axis_label)
-        ax.set_ylabel('Secure Key Rate (bits per 100 qubits)',
-                       fontweight=STYLE.font_weight_axis_label)
-        ax.set_title(
-            f'BB84 Protocol - Intercept-Resend Attack + {p_label} - Secure Key Rate\n'
-            f'({data.n_qubits} qubits, {data.n_trials} trials, '
-            f'Shor-Preskill Bound @ $f_{{EC}}$ = {self.f_ec})',
-            fontweight=STYLE.font_weight_title, pad=STYLE.title_pad)
-    
-
-
-        ax.set_xlim(data.parameter_values.min() - 0.01, data.parameter_values.max() + 0.01)
-        ax.set_ylim(0, max(y.max() * 1.15, 1.0))
-        ax.grid(True, alpha=STYLE.grid_alpha)
-        ax.legend(loc='upper right', framealpha=STYLE.legend_framealpha)
-        plt.tight_layout()
-        self._finalise(fig, output_dir, 'keyrate.png', show)
+        # --- Mutual information figure ---
+        self._plot_mutual_info(
+            data, colour, marker,
+            xlabel='Eve Interception Rate',
+            title=(f'BB84 Protocol - Intercept-Resend Attack + {p_label} - Mutual Information\n'
+                   f'({data.n_qubits} qubits, {data.n_trials} trials per point)'),
+            x_pad=0.01,
+            output_dir=output_dir, show=show,
+        )
 
     # --------------------------------------------------------------
     # B92 experiments
@@ -309,12 +233,10 @@ class QKDPlotter:
     def plot_b92_sweep(self, data: BenchmarkData,
                        output_dir: Optional[Path] = None,
                        show: bool = False) -> None:
-        """B92 depolarising-noise sweep: QBER and secure key rate."""
+        """B92 depolarising-noise sweep: QBER and mutual information."""
         colour = STYLE.protocol_colours['B92']
         marker = STYLE.protocol_markers['B92']
         threshold = _QBER_THRESHOLDS['B92']
-        theory_x = np.linspace(data.parameter_values.min(),
-                               data.parameter_values.max(), 200)
 
         # --- QBER figure ---
         fig, ax = plt.subplots(figsize=STYLE.figsize_single)
@@ -326,10 +248,6 @@ class QKDPlotter:
             markersize=STYLE.errorbar_markersize, color=colour, ecolor=colour,
             alpha=STYLE.errorbar_alpha, label='Depolarising Channel',
         )
-        theory_y = B92Protocol.theoretical_qber('depolarizing', theory_x)
-        ax.plot(theory_x, theory_y, STYLE.theory_linestyle, color=colour,
-                alpha=STYLE.theory_alpha, linewidth=STYLE.theory_linewidth,
-                label='Depolarising Channel (Theoretical)')
         ax.axhline(y=threshold, color=STYLE.threshold_colour,
                    linestyle=STYLE.threshold_linestyle_horizontal,
                    linewidth=STYLE.threshold_linewidth,
@@ -349,45 +267,15 @@ class QKDPlotter:
         plt.tight_layout()
         self._finalise(fig, output_dir, 'qber.png', show)
 
-        # --- Secure key rate figure ---
-        fig, ax = plt.subplots(figsize=STYLE.figsize_single)
-        y = data.secure_key_rate_mean * 100
-        y_err = data.secure_key_rate_std / np.sqrt(data.n_trials) * 100
-        ax.errorbar(
-            data.parameter_values, y, yerr=y_err,
-            fmt=f'{marker}-', capsize=STYLE.errorbar_capsize,
-            capthick=STYLE.errorbar_capthick, linewidth=STYLE.errorbar_linewidth,
-            markersize=STYLE.errorbar_markersize, color=colour, ecolor=colour,
-            alpha=STYLE.errorbar_alpha, label='Depolarising Channel',
+        # --- Mutual information figure ---
+        self._plot_mutual_info(
+            data, colour, marker,
+            xlabel='Depolarising Noise Strength',
+            title=(f'B92 Protocol - Depolarising Channel - Mutual Information\n'
+                   f'({data.n_qubits} qubits, {data.n_trials} trials per point)'),
+            x_pad=0.005,
+            output_dir=output_dir, show=show,
         )
-        theory_y = B92Protocol.theoretical_secure_key_rate(
-            'depolarizing', theory_x, f_ec=self.f_ec)
-        ax.plot(theory_x, theory_y * 100, STYLE.theory_linestyle, color=colour,
-                alpha=STYLE.theory_alpha, linewidth=STYLE.theory_linewidth,
-                label='Depolarising Channel (Theoretical)')
-        theory_qber = B92Protocol.theoretical_qber('depolarizing', data.parameter_values)
-        idx = int(np.searchsorted(theory_qber, threshold))
-        if 0 < idx < len(data.parameter_values):
-            p_crit = float(data.parameter_values[idx])
-            ax.axvline(x=p_crit, color=STYLE.threshold_colour,
-                       linestyle=STYLE.threshold_linestyle_vertical,
-                       linewidth=STYLE.threshold_linewidth,
-                       alpha=STYLE.threshold_alpha_vertical,
-                       label=f'QBER = {threshold:.1%} threshold (p \u2248 {p_crit:.2f})')
-        ax.set_xlabel('Depolarising Noise Strength', fontweight=STYLE.font_weight_axis_label)
-        ax.set_ylabel('Secure Key Rate (bits/100 qubits)',
-                       fontweight=STYLE.font_weight_axis_label)
-        ax.set_title(
-            f'B92 Protocol - Depolarising Channel - Secure Key Rate\n'
-            f'({data.n_qubits} qubits, {data.n_trials} trials, '
-            f'6.5% QBER Threshold)',
-            fontweight=STYLE.font_weight_title, pad=STYLE.title_pad)
-        ax.set_xlim(data.parameter_values.min() - 0.005, data.parameter_values.max() + 0.005)
-        ax.set_ylim(0, max(y.max() * 1.15, 1.0))
-        ax.grid(True, alpha=STYLE.grid_alpha)
-        ax.legend(loc='upper right', framealpha=STYLE.legend_framealpha)
-        plt.tight_layout()
-        self._finalise(fig, output_dir, 'keyrate.png', show)
 
     def plot_b92_eve(self, data: BenchmarkData,
                      output_dir: Optional[Path] = None,
@@ -396,6 +284,7 @@ class QKDPlotter:
         colour = STYLE.protocol_colours['B92']
         marker = STYLE.protocol_markers['B92']
         threshold = _QBER_THRESHOLDS['B92']
+        e_crit = _eve_crossing_rate(data.parameter_values, data.qber_mean, threshold)
 
         # --- QBER figure ---
         fig, ax = plt.subplots(figsize=STYLE.figsize_single)
@@ -412,7 +301,6 @@ class QKDPlotter:
                    linewidth=STYLE.threshold_linewidth,
                    alpha=STYLE.threshold_alpha_horizontal,
                    label=f'B92 Security Threshold ({threshold:.1%})')
-        e_crit = _eve_crossing_rate(data.parameter_values, data.qber_mean, threshold)
         if e_crit is not None:
             ax.axvline(x=e_crit, color=STYLE.threshold_colour,
                        linestyle=STYLE.threshold_linestyle_vertical,
@@ -433,38 +321,15 @@ class QKDPlotter:
         plt.tight_layout()
         self._finalise(fig, output_dir, 'qber.png', show)
 
-        # --- Secure key rate figure ---
-        fig, ax = plt.subplots(figsize=STYLE.figsize_single)
-        y = data.secure_key_rate_mean * 100
-        y_err = data.secure_key_rate_std / np.sqrt(data.n_trials) * 100
-        ax.errorbar(
-            data.parameter_values, y, yerr=y_err,
-            fmt=f'{marker}-', capsize=STYLE.errorbar_capsize,
-            capthick=STYLE.errorbar_capthick, linewidth=STYLE.errorbar_linewidth,
-            markersize=STYLE.errorbar_markersize, color=colour, ecolor=colour,
-            alpha=STYLE.errorbar_alpha, label='Intercept-Resend',
+        # --- Mutual information figure ---
+        self._plot_mutual_info(
+            data, colour, marker,
+            xlabel='Eve Interception Rate',
+            title=(f'B92 Protocol - Intercept-Resend Attack - Mutual Information\n'
+                   f'({data.n_qubits} qubits, {data.n_trials} trials per point)'),
+            x_pad=0.01,
+            output_dir=output_dir, show=show,
         )
-        if e_crit is not None:
-            ax.axvline(x=e_crit, color=STYLE.threshold_colour,
-                       linestyle=STYLE.threshold_linestyle_vertical,
-                       linewidth=STYLE.threshold_linewidth,
-                       alpha=STYLE.threshold_alpha_vertical,
-                       label=f'QBER Threshold = {threshold:.1%} @ Intercept Rate = \u2248 {e_crit:.2f}')
-        ax.set_xlabel('Eve Interception Rate', fontweight=STYLE.font_weight_axis_label)
-        ax.set_ylabel('Secure Key Rate (bits per 100 qubits)',
-                       fontweight=STYLE.font_weight_axis_label)
-        ax.set_title(
-            f'B92 Protocol - Intercept-Resend Attack - Secure Key Rate\n'
-            f'({data.n_qubits} qubits, {data.n_trials} trials, '
-            f'6.5% QBER Threshold)',
-            fontweight=STYLE.font_weight_title, pad=STYLE.title_pad)
-            
-        ax.set_xlim(data.parameter_values.min() - 0.01, data.parameter_values.max() + 0.01)
-        ax.set_ylim(0, max(y.max() * 1.15, 1.0))
-        ax.grid(True, alpha=STYLE.grid_alpha)
-        ax.legend(loc='upper right', framealpha=STYLE.legend_framealpha)
-        plt.tight_layout()
-        self._finalise(fig, output_dir, 'keyrate.png', show)
 
     def plot_b92_noisy_eve(self, data: BenchmarkData, noise_strength: float,
                            output_dir: Optional[Path] = None,
@@ -474,6 +339,7 @@ class QKDPlotter:
         marker = STYLE.protocol_markers['B92']
         threshold = _QBER_THRESHOLDS['B92']
         p_label = f'Depolarising Noise Strength (p = {noise_strength:.3f})'
+        e_crit = _eve_crossing_rate(data.parameter_values, data.qber_mean, threshold)
 
         # --- QBER figure ---
         fig, ax = plt.subplots(figsize=STYLE.figsize_single)
@@ -490,7 +356,6 @@ class QKDPlotter:
                    linewidth=STYLE.threshold_linewidth,
                    alpha=STYLE.threshold_alpha_horizontal,
                    label=f'B92 Protocol Security Threshold ({threshold:.1%})')
-        e_crit = _eve_crossing_rate(data.parameter_values, data.qber_mean, threshold)
         if e_crit is not None:
             ax.axvline(x=e_crit, color=STYLE.threshold_colour,
                        linestyle=STYLE.threshold_linestyle_vertical,
@@ -511,39 +376,15 @@ class QKDPlotter:
         plt.tight_layout()
         self._finalise(fig, output_dir, 'qber.png', show)
 
-        # --- Secure key rate figure ---
-        fig, ax = plt.subplots(figsize=STYLE.figsize_single)
-        y = data.secure_key_rate_mean * 100
-        y_err = data.secure_key_rate_std / np.sqrt(data.n_trials) * 100
-        ax.errorbar(
-            data.parameter_values, y, yerr=y_err,
-            fmt=f'{marker}-', capsize=STYLE.errorbar_capsize,
-            capthick=STYLE.errorbar_capthick, linewidth=STYLE.errorbar_linewidth,
-            markersize=STYLE.errorbar_markersize, color=colour, ecolor=colour,
-            alpha=STYLE.errorbar_alpha, label=f'Intercept-Resend Attack + {p_label}')
-        
-        if e_crit is not None:
-            ax.axvline(x=e_crit, color=STYLE.threshold_colour,
-                       linestyle=STYLE.threshold_linestyle_vertical,
-                       linewidth=STYLE.threshold_linewidth,
-                       alpha=STYLE.threshold_alpha_vertical,
-                       label=f'QBER Threshold = {threshold:.1%} @ Intercept Rate = \u2248 {e_crit:.2f}')
-        ax.set_xlabel('Eve Interception Rate', fontweight=STYLE.font_weight_axis_label)
-        ax.set_ylabel('Secure Key Rate (bits per 100 qubits)',
-                       fontweight=STYLE.font_weight_axis_label)
-        ax.set_title(
-            f'B92 Protocol - Intercept-Resend Attack + {p_label} - Secure Key Rate\n'
-            f'({data.n_qubits} qubits, {data.n_trials} trials, '
-            f'6.5% QBER Threshold)',
-            fontweight=STYLE.font_weight_title, pad=STYLE.title_pad)
-        
-        
-        ax.set_xlim(data.parameter_values.min() - 0.01, data.parameter_values.max() + 0.01)
-        ax.set_ylim(0, max(y.max() * 1.15, 1.0))
-        ax.grid(True, alpha=STYLE.grid_alpha)
-        ax.legend(loc='upper right', framealpha=STYLE.legend_framealpha)
-        plt.tight_layout()
-        self._finalise(fig, output_dir, 'keyrate.png', show)
+        # --- Mutual information figure ---
+        self._plot_mutual_info(
+            data, colour, marker,
+            xlabel='Eve Interception Rate',
+            title=(f'B92 Protocol - Intercept-Resend Attack + {p_label} - Mutual Information\n'
+                   f'({data.n_qubits} qubits, {data.n_trials} trials per point)'),
+            x_pad=0.01,
+            output_dir=output_dir, show=show,
+        )
 
     # --------------------------------------------------------------
     # E91 experiment
@@ -553,43 +394,20 @@ class QKDPlotter:
                        output_dir: Optional[Path] = None,
                        show: bool = False,
                        channel_topology: str = 'both') -> None:
-        """E91 depolarising-noise sweep: QBER, key rate, CHSH, CHSH+QBER."""
+        """E91 depolarising-noise sweep: mutual information and CHSH+QBER."""
         colour = STYLE.protocol_colours['E91']
         marker = STYLE.protocol_markers['E91']
-        theory_x = np.linspace(data.parameter_values.min(),
-                               data.parameter_values.max(), 200)
         topo_str = f' ({channel_topology}-side noise)'
 
-        # --- Secure key rate figure ---
-        fig, ax = plt.subplots(figsize=STYLE.figsize_single)
-        y = data.secure_key_rate_mean * 100
-        y_err = data.secure_key_rate_std / np.sqrt(data.n_trials) * 100
-        ax.errorbar(
-            data.parameter_values, y, yerr=y_err,
-            fmt=f'{marker}-', capsize=STYLE.errorbar_capsize,
-            capthick=STYLE.errorbar_capthick, linewidth=STYLE.errorbar_linewidth,
-            markersize=STYLE.errorbar_markersize, color=colour, ecolor=colour,
-            alpha=STYLE.errorbar_alpha, label='Depolarising Channel',
+        # --- Mutual information figure ---
+        self._plot_mutual_info(
+            data, colour, marker,
+            xlabel='Depolarising Noise Strength',
+            title=(f'E91 Protocol - Depolarising Channel {topo_str} - Mutual Information\n'
+                   f'({data.n_qubits} photon pairs, {data.n_trials} trials)'),
+            x_pad=0.005,
+            output_dir=output_dir, show=show,
         )
-        theory_y = E91Protocol.theoretical_secure_key_rate(
-            'depolarizing', theory_x, f_ec=self.f_ec,
-            channel_topology=channel_topology)
-        ax.plot(theory_x, theory_y * 100, STYLE.theory_linestyle, color=colour,
-                alpha=STYLE.theory_alpha, linewidth=STYLE.theory_linewidth,
-                label='Depolarising Channel (Theoretical)')
-        ax.set_xlabel('Depolarising Noise Strength', fontweight=STYLE.font_weight_axis_label)
-        ax.set_ylabel('Secure Key Rate (bits per 100 qubits)',
-                       fontweight=STYLE.font_weight_axis_label)
-        ax.set_title(
-            f'E91 Protocol - Depolarising Channel {topo_str} - Secure Key Rate\n'
-            f'({data.n_qubits} photon pairs, {data.n_trials} trials)',
-            fontweight=STYLE.font_weight_title, pad=STYLE.title_pad)
-        ax.set_xlim(data.parameter_values.min() - 0.005, data.parameter_values.max() + 0.005)
-        ax.set_ylim(0, max(y.max() * 1.15, 1.0))
-        ax.grid(True, alpha=STYLE.grid_alpha)
-        ax.legend(loc='upper right', framealpha=STYLE.legend_framealpha)
-        plt.tight_layout()
-        self._finalise(fig, output_dir, 'keyrate.png', show)
 
         if data.chsh_mean is None:
             return
@@ -600,7 +418,7 @@ class QKDPlotter:
         qber_colour = STYLE.noise_colours['depolarizing']
         qber_sem_pct = data.qber_std / np.sqrt(data.n_trials) * 100
         chsh_sem = data.chsh_std / np.sqrt(data.n_trials)
-    
+
         ax_chsh.errorbar(
             data.parameter_values, data.chsh_mean, yerr=chsh_sem,
             fmt=f'{marker}-', capsize=STYLE.errorbar_capsize,
@@ -620,8 +438,10 @@ class QKDPlotter:
                         linewidth=STYLE.threshold_linewidth,
                         alpha=STYLE.threshold_alpha_horizontal,
                         label='Classical Bound (|S| = 2)')
-        ax_chsh.axhline(y=2 * np.sqrt(2), color="#ff9500", linestyle=STYLE.threshold_linestyle_horizontal,
-                        linewidth=STYLE.threshold_linewidth, alpha=STYLE.threshold_alpha_horizontal,
+        ax_chsh.axhline(y=2 * np.sqrt(2), color="#ff9500",
+                        linestyle=STYLE.threshold_linestyle_horizontal,
+                        linewidth=STYLE.threshold_linewidth,
+                        alpha=STYLE.threshold_alpha_horizontal,
                         label=r'Tsirelson Bound (|S| = 2$\sqrt{2}$)', xmax=0.666)
         ax_chsh.set_xlabel('Depolarising Noise Strength', fontweight=STYLE.font_weight_axis_label)
         ax_chsh.set_ylabel('|S| (CHSH Parameter)', fontweight=STYLE.font_weight_axis_label)
@@ -653,8 +473,7 @@ class QKDPlotter:
     def plot_noise_comparison(self, data_dict: Dict[str, BenchmarkData],
                               output_dir: Optional[Path] = None,
                               show: bool = False) -> None:
-        """BB84/B92/E91 overlay under depolarising noise: QBER and key rate."""
-        proto_classes = {'BB84': BB84Protocol, 'B92': B92Protocol, 'E91': E91Protocol}
+        """BB84/B92/E91 overlay under depolarising noise: QBER and mutual info."""
         sample_data = next(iter(data_dict.values()))
 
         # --- QBER comparison ---
@@ -671,15 +490,6 @@ class QKDPlotter:
                 color=colour, alpha=STYLE.errorbar_alpha,
                 label=f'{proto_name} Protocol',
             )
-            cls = proto_classes.get(proto_name)
-            if cls is not None:
-                theory_x = np.linspace(data.parameter_values.min(),
-                                       data.parameter_values.max(), 200)
-                theory_y = cls.theoretical_qber('depolarizing', theory_x)
-                if theory_y is not None:
-                    ax.plot(theory_x, theory_y, STYLE.theory_linestyle,
-                            color=colour, alpha=STYLE.theory_alpha,
-                            linewidth=STYLE.theory_linewidth)
 
         for proto_name, thresh in _QBER_THRESHOLDS.items():
             if proto_name not in data_dict:
@@ -704,14 +514,14 @@ class QKDPlotter:
         plt.tight_layout()
         self._finalise(fig, output_dir, 'qber_vs_noise.png', show)
 
-        # --- Secure key rate comparison ---
+        # --- Mutual information comparison ---
         fig, ax = plt.subplots(figsize=STYLE.figsize_comparison)
         all_y_max = 0.0
         for proto_name, data in data_dict.items():
             colour = STYLE.protocol_colours.get(proto_name, STYLE.default_colour)
             marker = STYLE.protocol_markers.get(proto_name, STYLE.default_marker)
-            y = data.secure_key_rate_mean * 100
-            y_err = data.secure_key_rate_std / np.sqrt(data.n_trials) * 100
+            y = data.mutual_info_mean * 100
+            y_err = data.mutual_info_std / np.sqrt(data.n_trials) * 100
             all_y_max = max(all_y_max, float(y.max()))
             ax.errorbar(
                 data.parameter_values, y, yerr=y_err,
@@ -721,31 +531,141 @@ class QKDPlotter:
                 color=colour, alpha=STYLE.errorbar_alpha,
                 label=f'{proto_name} Protocol',
             )
-            cls = proto_classes.get(proto_name)
-            if cls is not None:
-                theory_x = np.linspace(data.parameter_values.min(),
-                                       data.parameter_values.max(), 200)
-                theory_y = cls.theoretical_secure_key_rate(
-                    'depolarizing', theory_x, f_ec=self.f_ec)
-                if theory_y is not None:
-                    ax.plot(theory_x, theory_y * 100, STYLE.theory_linestyle,
-                            color=colour, alpha=STYLE.theory_alpha,
-                            linewidth=STYLE.theory_linewidth)
         ax.set_xlabel('Depolarising Noise Strength', fontweight=STYLE.font_weight_axis_label)
-        ax.set_ylabel('Secure Key Rate (bits per 100 qubits)',
+        ax.set_ylabel('Mutual Information (bits per 100 qubits)',
                       fontweight=STYLE.font_weight_axis_label)
         ax.set_title(
-            f'Three-Protocol Benchmark - Depolarising Channel - Secure Key Rate\n'
+            f'Three-Protocol Benchmark - Depolarising Channel - Mutual Information\n'
             f'({sample_data.n_trials} trials/point, '
             f'{sample_data.n_qubits} qubits per trial)',
             fontweight=STYLE.font_weight_title, pad=STYLE.title_pad)
+        ax.set_xlim(sample_data.parameter_values.min() - 0.005,
+                    sample_data.parameter_values.max() + 0.005)
         ax.set_ylim(0, max(all_y_max * 1.15, 1.0))
         ax.grid(True, alpha=STYLE.grid_alpha)
         ax.legend(framealpha=STYLE.legend_framealpha)
         plt.tight_layout()
-        self._finalise(fig, output_dir, 'keyrate_vs_noise.png', show)
+        self._finalise(fig, output_dir, 'mutual_info_vs_noise.png', show)
+
+    def plot_baseline_comparison(self, data_dict: Dict[str, BenchmarkData],
+                                  output_dir: Optional[Path] = None,
+                                  show: bool = False) -> None:
+        """Baseline comparison: BB84/B92/E91 on clean channel - bar charts for QBER and MI."""
+        sample_data = next(iter(data_dict.values()))
+        protocols = list(data_dict.keys())
+        protocol_colours = [STYLE.protocol_colours.get(p, STYLE.default_colour)
+                           for p in protocols]
+
+        # --- QBER comparison (bar chart) ---
+        fig, ax = plt.subplots(figsize=STYLE.figsize_comparison)
+        qber_means = [data_dict[p].qber_mean[0] * 100 if len(data_dict[p].qber_mean) > 0
+                      else 0.0 for p in protocols]
+        qber_stds = [data_dict[p].qber_std[0] / np.sqrt(data_dict[p].n_trials) * 100
+                     if len(data_dict[p].qber_std) > 0 else 0.0 for p in protocols]
+
+        bars = ax.bar(protocols, qber_means, yerr=qber_stds,
+                      color=protocol_colours, alpha=STYLE.errorbar_alpha,
+                      capsize=STYLE.errorbar_capsize, error_kw={'linewidth': STYLE.errorbar_linewidth})
+
+        # Add threshold lines for BB84 and B92
+        for i, proto in enumerate(protocols):
+            if proto in _QBER_THRESHOLDS:
+                threshold = _QBER_THRESHOLDS[proto] * 100
+                ax.axhline(y=threshold, color=protocol_colours[i],
+                          linestyle='--', linewidth=STYLE.threshold_linewidth,
+                          alpha=STYLE.threshold_alpha_horizontal)
+
+        ax.set_ylabel('QBER (%)', fontweight=STYLE.font_weight_axis_label)
+        ax.set_title(
+            f'Baseline Comparison - Clean Channel - QBER\n'
+            f'({sample_data.n_qubits} qubits, {sample_data.n_trials} trials)',
+            fontweight=STYLE.font_weight_title, pad=STYLE.title_pad)
+        ax.set_ylim(0, min(max(qber_means) * 1.5, 20.0))
+        ax.grid(True, alpha=STYLE.grid_alpha, axis='y')
+        plt.tight_layout()
+        self._finalise(fig, output_dir, 'baseline_qber.png', show)
+
+        # --- Mutual information comparison (bar chart) ---
+        fig, ax = plt.subplots(figsize=STYLE.figsize_comparison)
+        mi_means = [data_dict[p].mutual_info_mean[0] * 100 if len(data_dict[p].mutual_info_mean) > 0
+                    else 0.0 for p in protocols]
+        mi_stds = [data_dict[p].mutual_info_std[0] / np.sqrt(data_dict[p].n_trials) * 100
+                   if len(data_dict[p].mutual_info_std) > 0 else 0.0 for p in protocols]
+
+        bars = ax.bar(protocols, mi_means, yerr=mi_stds,
+                      color=protocol_colours, alpha=STYLE.errorbar_alpha,
+                      capsize=STYLE.errorbar_capsize, error_kw={'linewidth': STYLE.errorbar_linewidth})
+
+        ax.set_ylabel('Mutual Information (bits per 100 qubits)',
+                     fontweight=STYLE.font_weight_axis_label)
+        ax.set_title(
+            f'Baseline Comparison - Clean Channel - Mutual Information\n'
+            f'({sample_data.n_qubits} qubits, {sample_data.n_trials} trials)',
+            fontweight=STYLE.font_weight_title, pad=STYLE.title_pad)
+        ax.set_ylim(0, max(mi_means) * 1.2)
+        ax.grid(True, alpha=STYLE.grid_alpha, axis='y')
+        plt.tight_layout()
+        self._finalise(fig, output_dir, 'baseline_mutual_info.png', show)
 
     # --------------------------------------------------------------
+
+    def _plot_mutual_info(self, data: BenchmarkData, colour: str, marker: str,
+                          xlabel: str, title: str, x_pad: float,
+                          output_dir: Optional[Path], show: bool) -> None:
+        """Shared mutual-information figure: I(A;B) = sifting_rate * (1 - h(QBER))."""
+        fig, ax = plt.subplots(figsize=STYLE.figsize_single)
+        y = data.mutual_info_mean * 100
+        y_err = data.mutual_info_std / np.sqrt(data.n_trials) * 100
+        ax.errorbar(
+            data.parameter_values, y, yerr=y_err,
+            fmt=f'{marker}-', capsize=STYLE.errorbar_capsize,
+            capthick=STYLE.errorbar_capthick, linewidth=STYLE.errorbar_linewidth,
+            markersize=STYLE.errorbar_markersize, color=colour, ecolor=colour,
+            alpha=STYLE.errorbar_alpha, label='Simulation',
+        )
+        ax.set_xlabel(xlabel, fontweight=STYLE.font_weight_axis_label)
+        ax.set_ylabel('Mutual Information (bits per 100 qubits)',
+                      fontweight=STYLE.font_weight_axis_label)
+        ax.set_title(title, fontweight=STYLE.font_weight_title, pad=STYLE.title_pad)
+        ax.set_xlim(data.parameter_values.min() - x_pad,
+                    data.parameter_values.max() + x_pad)
+        ax.set_ylim(0, max(y.max() * 1.15, 1.0))
+        ax.grid(True, alpha=STYLE.grid_alpha)
+        ax.legend(loc='upper right', framealpha=STYLE.legend_framealpha)
+        plt.tight_layout()
+        self._finalise(fig, output_dir, 'mutual_info.png', show)
+
+    def _plot_gllp(self, data: BenchmarkData, colour: str, marker: str,
+                   xlabel: str, title: str, x_pad: float,
+                   output_dir: Optional[Path], show: bool) -> None:
+        """GLLP/Shor-Preskill secure key rate: sifting_ratio * max(0, 1 - 2*h(QBER))."""
+        fig, ax = plt.subplots(figsize=STYLE.figsize_single)
+        y = data.gllp_mean * 100
+        y_err = data.gllp_std / np.sqrt(data.n_trials) * 100
+        ax.errorbar(
+            data.parameter_values, y, yerr=y_err,
+            fmt=f'{marker}-', capsize=STYLE.errorbar_capsize,
+            capthick=STYLE.errorbar_capthick, linewidth=STYLE.errorbar_linewidth,
+            markersize=STYLE.errorbar_markersize, color=colour, ecolor=colour,
+            alpha=STYLE.errorbar_alpha, label='GLLP Secure Key Rate',
+        )
+        # Overlay mutual information for direct comparison
+        ax.plot(
+            data.parameter_values, data.mutual_info_mean * 100,
+            linestyle='--', color=colour, alpha=0.45,
+            linewidth=STYLE.errorbar_linewidth, label='Mutual Information (Shannon)',
+        )
+        ax.set_xlabel(xlabel, fontweight=STYLE.font_weight_axis_label)
+        ax.set_ylabel('Secure Key Rate (bits per 100 qubits)',
+                      fontweight=STYLE.font_weight_axis_label)
+        ax.set_title(title, fontweight=STYLE.font_weight_title, pad=STYLE.title_pad)
+        ax.set_xlim(data.parameter_values.min() - x_pad,
+                    data.parameter_values.max() + x_pad)
+        ax.set_ylim(-1, max(y.max() * 1.15, 1.0))
+        ax.grid(True, alpha=STYLE.grid_alpha)
+        ax.legend(loc='upper right', framealpha=STYLE.legend_framealpha)
+        plt.tight_layout()
+        self._finalise(fig, output_dir, 'gllp_key_rate.png', show)
 
     def _finalise(self, fig: plt.Figure,
                   output_dir: Optional[Path], filename: str,

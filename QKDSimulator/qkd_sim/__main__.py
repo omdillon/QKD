@@ -40,6 +40,7 @@ EXPERIMENT_PLOTTERS = {
     'b92_noisy_eve':    ('eve_sweep',           'plot_b92_noisy_eve'),
     'e91_sweep':        ('sweep',               'plot_e91_sweep'),
     'noise_comparison': ('protocol_comparison', 'plot_noise_comparison'),
+    'baseline':         ('protocol_comparison', 'plot_baseline_comparison'),
 }
 
 
@@ -57,10 +58,10 @@ def run_single(config):
     """Run a single protocol trial (no plotting)."""
     protocol_class = PROTOCOLS[config.protocol]
     backend = create_backend(config.noise_type, config.noise_strength)
-    eve = EveInterceptor(config.eve_rate) if config.eve_rate is not None else None
+    eve = EveInterceptor(config.eve_rate, backend) if config.eve_rate is not None else None
 
     protocol = protocol_class(
-        n_qubits=config.n_qubits, backend=backend, eve=eve, f_ec=config.f_ec,
+        n_qubits=config.n_qubits, backend=backend, eve=eve,
         **_e91_kwargs(config, config.protocol),
     )
     result = protocol.run()
@@ -68,7 +69,7 @@ def run_single(config):
     print(f"  {protocol_class.protocol_name()} | "
           f"QBER: {result.qber:.4f} | "
           f"Key rate: {result.key_rate:.2%} | "
-          f"Secure: {'YES' if result.is_secure else 'NO'}")
+          f"I(A;B): {result.mutual_information:.4f}")
 
     if hasattr(result, 's_value'):
         print(f"  |S| (CHSH): {result.abs_s:.4f} "
@@ -89,14 +90,13 @@ def run_sweep(config, plot_method_name):
         n_qubits=config.n_qubits,
         with_eve=config.eve_rate is not None,
         eve_rate=config.eve_rate if config.eve_rate else 0.0,
-        f_ec=config.f_ec,
         protocol_kwargs=_e91_kwargs(config, config.protocol),
     )
 
     if not (config.save_plots or config.show_plots):
         return
 
-    plotter = QKDPlotter(f_ec=config.f_ec)
+    plotter = QKDPlotter()
     method = getattr(plotter, plot_method_name)
     if config.protocol.lower() == 'e91':
         method(data, output_dir=_output_dir(config), show=config.show_plots,
@@ -118,14 +118,13 @@ def run_eve_sweep(config, plot_method_name):
         n_qubits=config.n_qubits,
         noise_type=config.noise_type,
         noise_strength=config.noise_strength,
-        f_ec=config.f_ec,
         protocol_kwargs=_e91_kwargs(config, config.protocol),
     )
 
     if not (config.save_plots or config.show_plots):
         return
 
-    plotter = QKDPlotter(f_ec=config.f_ec)
+    plotter = QKDPlotter()
     method = getattr(plotter, plot_method_name)
     if 'noisy_eve' in plot_method_name:
         method(data, noise_strength=config.noise_strength,
@@ -151,14 +150,13 @@ def run_protocol_comparison(config, plot_method_name):
         strengths=strengths,
         n_trials=config.n_trials,
         n_qubits=config.n_qubits,
-        f_ec=config.f_ec,
         protocol_kwargs=proto_kwargs,
     )
 
     if not (config.save_plots or config.show_plots):
         return
 
-    plotter = QKDPlotter(f_ec=config.f_ec)
+    plotter = QKDPlotter()
     method = getattr(plotter, plot_method_name)
     method(data_dict, output_dir=_output_dir(config), show=config.show_plots)
 

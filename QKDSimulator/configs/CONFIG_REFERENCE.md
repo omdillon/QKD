@@ -20,7 +20,6 @@ All config files use flat YAML (no nesting). Copy `template.yaml` and uncomment 
 | `protocols` | list | — | Protocol list for `protocol_comparison` mode |
 | `n_qubits` | int | `256` | Qubits per trial |
 | `n_trials` | int | `30` | Independent trials per parameter point |
-| `f_ec` | float | `1.16` | Error correction efficiency (1.0 = Shannon, 1.16 = CASCADE) |
 | `noise_type` | string | `none` | Noise model (see below) |
 | `noise_strength` | float | `0.0` | Fixed noise strength (single mode) |
 | `noise_min` | float | `0.0` | Sweep start |

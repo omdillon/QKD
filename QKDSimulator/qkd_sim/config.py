@@ -20,7 +20,6 @@ class SimConfig:
     protocols: Optional[List[str]] = None
     n_qubits: int = 256
     n_trials: int = 30
-    f_ec: float = 1.16
     noise_type: str = "none"
     noise_strength: float = 0.0
     noise_min: float = 0.0

@@ -34,8 +34,8 @@ class BB84Protocol(QKDProtocol):
     """Runs the complete BB84 protocol."""
 
     def __init__(self, n_qubits: int, backend: AerSimulator,
-                 eve: Optional[EveInterceptor] = None, f_ec: float = 1.16):
-        super().__init__(n_qubits, backend, eve, f_ec)
+                 eve: Optional[EveInterceptor] = None):
+        super().__init__(n_qubits, backend, eve)
         self._alice_bits = None
         self._alice_bases = None
         self._bob_bases = None
@@ -53,14 +53,6 @@ class BB84Protocol(QKDProtocol):
 
         if noise_type == 'depolarizing':
             return p / 2.0
-        elif noise_type == 'bitflip':
-            return p / 2.0
-        elif noise_type == 'phaseflip':
-            return p / 2.0
-        elif noise_type == 'amplitude_damping':
-            return (p + 1.0 - np.sqrt(np.clip(1.0 - p, 0, 1))) / 4.0
-        elif noise_type == 'phase_damping':
-            return (1.0 - np.sqrt(np.clip(1.0 - p, 0, 1))) / 4.0
         return None
 
     def run(self) -> BB84Result:
@@ -131,7 +123,6 @@ class BB84Protocol(QKDProtocol):
             sifted_key_bob=sifted_key_bob,
             qber=qber,
             key_rate=key_rate,
-            f_ec=self.f_ec,
             eve_intercepted=self._eve_intercepted,
             alice_bases=self._alice_bases.copy(),
             bob_bases=self._bob_bases.copy(),

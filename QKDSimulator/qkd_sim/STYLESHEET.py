@@ -39,10 +39,6 @@ class PlotStyle:
     noise_colours: Dict[str, str] = field(default_factory=lambda: {
         'none': '#0e365f',
         'depolarizing': '#dd1634',
-        'bitflip': "#ff9500",
-        'phaseflip': '#1a5c8a',
-        'amplitude_damping': '#a01228',
-        'phase_damping': '#2980b9',
     })
     default_colour: str = '#0e365f'
 
@@ -50,10 +46,6 @@ class PlotStyle:
     noise_markers: Dict[str, str] = field(default_factory=lambda: {
         'none': 'o',
         'depolarizing': 's',
-        'bitflip': '^',
-        'phaseflip': 'D',
-        'amplitude_damping': 'v',
-        'phase_damping': 'P',
     })
     default_marker: str = 'o'
 

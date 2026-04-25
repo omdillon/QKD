@@ -4,10 +4,9 @@ n_qubits: 1000
 n_trials: 20
 noise_type: none
 noise_strength: 0.0
-f_ec: 1
 eve_min: 0.0
 eve_max: 1.0
-eve_steps: 20
+eve_steps: 25
 output_dir: ./results/bb84_eve
 save_plots: true
 

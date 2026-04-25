@@ -4,10 +4,6 @@ B92 protocol implementation.
 Alice encodes bit 0 as |0> and bit 1 as |+>. Bob randomly measures
 in Z or X basis. Conclusive events (Bob result == 1) form the sifted key.
 The identity gate (qc.id) marks where channel noise is applied.
-
-Security bound: Shor-Preskill formula with a hard 6.5% QBER cap from
-Matsumoto (arXiv:1301.5083, 2013). Original unconditional security proof:
-Tamaki, Koashi, Imoto, PRL 90, 167904 (2003).
 """
 
 from dataclasses import dataclass
@@ -19,29 +15,12 @@ from qiskit_aer import AerSimulator
 from ..base import QKDProtocol, QKDResult
 from ..eve import EveInterceptor
 
-# Hard QBER cap: no published B92 proof guarantees security above this value.
-# Matsumoto 2013 (arXiv:1301.5083), depolarising rate tolerance ~6.5%.
-B92_QBER_THRESHOLD = 0.065
-
 
 @dataclass
 class B92Result(QKDResult):
     """B92-specific result with Bob's basis choices and conclusive mask."""
     bob_bases: np.ndarray = None
     conclusive_mask: np.ndarray = None
-
-    @property
-    def secure_key_rate(self) -> float:
-        """B92 secure key rate with Matsumoto QBER cap.
-
-        Above the 6.5% QBER cap, no published B92 proof guarantees security,
-        so the rate is forced to zero. Below the cap, the Shor-Preskill formula
-        is used as a comparative-metric approximation. See Matsumoto 2013
-        (arXiv:1301.5083) and Tamaki, Koashi, Imoto PRL 90, 167904 (2003).
-        """
-        if self.qber > B92_QBER_THRESHOLD:
-            return 0.0
-        return super().secure_key_rate
 
 
 class B92Protocol(QKDProtocol):
@@ -55,8 +34,8 @@ class B92Protocol(QKDProtocol):
     """
 
     def __init__(self, n_qubits: int, backend: AerSimulator,
-                 eve: Optional[EveInterceptor] = None, f_ec: float = 1.16):
-        super().__init__(n_qubits, backend, eve, f_ec)
+                 eve: Optional[EveInterceptor] = None):
+        super().__init__(n_qubits, backend, eve)
         self._alice_bits = None
         self._bob_bases = None
         self._bob_results = None
@@ -74,29 +53,17 @@ class B92Protocol(QKDProtocol):
     @staticmethod
     def theoretical_qber(noise_type: str, strengths: np.ndarray) -> Optional[np.ndarray]:
         """B92 QBER: noise creates spurious outcome-1 events, giving p/(1+p)."""
-        if noise_type in ("depolarizing", "bitflip", "phaseflip"):
+        if noise_type == 'depolarizing':
             p = np.asarray(strengths, dtype=float)
             return p / (1.0 + p)
         return None
-
-    @classmethod
-    def theoretical_secure_key_rate(cls, noise_type: str, strengths: np.ndarray,
-                                    f_ec: float = 1.16) -> Optional[np.ndarray]:
-        """B92 theoretical rate with QBER cap applied pointwise."""
-        rate = super().theoretical_secure_key_rate(noise_type, strengths, f_ec)
-        if rate is None:
-            return None
-        qber = cls.theoretical_qber(noise_type, strengths)
-        if qber is None:
-            return rate
-        return np.where(qber > B92_QBER_THRESHOLD, 0.0, rate)
 
     def run(self) -> B92Result:
         """Run the full B92 protocol and return results."""
         circuits = self._alice_prepare()
 
         if self.eve is not None:
-            circuits, self._eve_intercepted = self.eve.intercept(circuits)
+            circuits, self._eve_intercepted = self.eve.intercept_b92(circuits)
 
         self._bob_measure(circuits)
         return self._post_process()
@@ -157,7 +124,6 @@ class B92Protocol(QKDProtocol):
             sifted_key_bob=sifted_key_bob,
             qber=qber,
             key_rate=key_rate,
-            f_ec=self.f_ec,
             eve_intercepted=self._eve_intercepted,
             bob_bases=self._bob_bases.copy(),
             conclusive_mask=conclusive_mask,

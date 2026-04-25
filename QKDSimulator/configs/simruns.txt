@@ -39,3 +39,6 @@ foreach ($cfg in $configs) {
     python -m qkd_sim "configs/$cfg.yaml"
 } *>&1 | Tee-Object -FilePath results/_run_log.txt
 
+
+
+

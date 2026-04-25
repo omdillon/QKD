@@ -156,7 +156,6 @@ def test_depolarizing_qber_two_sided():
         strengths=strengths,
         n_trials=20,
         n_qubits=400,
-        f_ec=1.16,
         protocol_kwargs={'channel_topology': 'both'},
     )
 
@@ -191,7 +190,6 @@ def test_depolarizing_qber_single_sided():
         strengths=strengths,
         n_trials=20,
         n_qubits=400,
-        f_ec=1.16,
         protocol_kwargs={'channel_topology': 'bob'},
     )
 
@@ -223,7 +221,6 @@ def test_depolarizing_chsh_degradation():
         strengths=strengths,
         n_trials=20,
         n_qubits=600,
-        f_ec=1.16,
         protocol_kwargs={'channel_topology': 'both'},
     )
 
@@ -373,10 +370,3 @@ def test_invalid_channel_topology_raises():
         E91Protocol(n_qubits=10, backend=backend, channel_topology='alice')
 
 
-def test_theoretical_qber_returns_none_for_unsupported():
-    """Non-depolarising channels should return None (deferred to v2)."""
-    p = np.linspace(0.0, 0.3, 5)
-    assert E91Protocol.theoretical_qber('bitflip', p) is None
-    assert E91Protocol.theoretical_qber('amplitude_damping', p) is None
-    assert E91Protocol.theoretical_qber('phase_damping', p) is None
-    assert E91Protocol.theoretical_chsh('bitflip', p) is None

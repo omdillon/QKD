@@ -1,11 +1,9 @@
 """
 Abstract base classes for QKD protocol implementations.
 
-QKDResult: base result container with Shor-Preskill secure key rate (BB84 default).
+QKDResult: base result container exposing Shannon mutual information I(A;B)
+per transmitted qubit as the protocol-agnostic performance metric.
 QKDProtocol: abstract contract all protocols inherit from.
-
-Subclasses may override secure_key_rate and theoretical_secure_key_rate to
-use protocol-appropriate bounds (e.g. B92 QBER cap, E91 CHSH-based DIQKD rate).
 """
 
 from abc import ABC, abstractmethod
@@ -29,7 +27,6 @@ class QKDResult:
     sifted_key_bob: np.ndarray
     qber: float
     key_rate: float
-    f_ec: float = 1.16
     eve_intercepted: Optional[np.ndarray] = None
 
     @property
@@ -47,30 +44,43 @@ class QKDResult:
         return -x * np.log2(x) - (1 - x) * np.log2(1 - x)
 
     @property
-    def secure_key_rate(self) -> float:
-        """Asymptotic secure key rate (Shor-Preskill bound)."""
+    def mutual_information(self) -> float:
+        """Shannon mutual information I(A;B) per transmitted qubit.
+
+        I(A;B) = sifting_rate * (1 - h(QBER)), assuming the sifted-bit
+        channel is a binary symmetric channel.
+        """
         if self.sifted_length == 0:
             return 0.0
         h_e = self._binary_entropy(self.qber)
-        secret_fraction = max(0.0, 1.0 - h_e - self.f_ec * h_e)
-        return self.key_rate * secret_fraction
+        return self.key_rate * (1.0 - h_e)
 
     @property
-    def is_secure(self) -> bool:
-        return self.secure_key_rate > 0
+    def gllp_key_rate(self) -> float:
+        """GLLP/Shor-Preskill secure key rate per transmitted qubit.
+
+        For an ideal single-photon source under a symmetric depolarising
+        channel, the phase error rate equals the bit error rate, giving:
+            r = sifting_ratio * max(0, 1 - 2*h(QBER))
+        Assumes perfect error correction (f_EC = 1).
+        """
+        if self.sifted_length == 0:
+            return 0.0
+        sifting_ratio = self.sifted_length / self.n_qubits
+        per_sifted = 1.0 - 2.0 * self._binary_entropy(self.qber)
+        return sifting_ratio * max(0.0, per_sifted)
 
 
 class QKDProtocol(ABC):
     """Abstract contract for all QKD protocol implementations."""
 
     def __init__(self, n_qubits: int, backend: AerSimulator,
-                 eve: Optional[EveInterceptor] = None, f_ec: float = 1.16):
+                 eve: Optional[EveInterceptor] = None):
         if n_qubits < 1:
             raise ValueError(f"n_qubits must be >= 1, got {n_qubits}")
         self.n_qubits = n_qubits
         self.backend = backend
         self.eve = eve
-        self.f_ec = f_ec
 
     @abstractmethod
     def run(self) -> QKDResult:
@@ -89,18 +99,3 @@ class QKDProtocol(ABC):
     @staticmethod
     def theoretical_qber(noise_type: str, strengths: np.ndarray) -> Optional[np.ndarray]:
         return None
-
-    @classmethod
-    def theoretical_secure_key_rate(cls, noise_type: str, strengths: np.ndarray,
-                                    f_ec: float = 1.16) -> Optional[np.ndarray]:
-        """Shor-Preskill: sifting_rate * max(0, 1 - (1+f_ec)*h(e))."""
-        qber = cls.theoretical_qber(noise_type, strengths)
-        if qber is None:
-            return None
-        sifting = cls.theoretical_sifting_rate()
-
-        def _h(x):
-            x = np.clip(x, 1e-15, 1.0 - 1e-15)
-            return -x * np.log2(x) - (1 - x) * np.log2(1 - x)
-
-        return sifting * np.maximum(0.0, 1.0 - (1.0 + f_ec) * _h(qber))
