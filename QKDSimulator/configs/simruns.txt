@@ -70,3 +70,5 @@ python -m qkd_sim configs/exp6_b92_surface_v2.yaml
 
 python -m qkd_sim configs/exp5_bb84_surface_v3.yaml
 python -m qkd_sim configs/exp6_b92_surface_v3.yaml
+
+test commit
