@@ -42,3 +42,25 @@ foreach ($cfg in $configs) {
 
 
 
+
+----------          v.3 plots         ----------
+
+
+6 new configs in configs/:
+
+File	Runs with
+exp1_baseline.yaml	python -m qkd_sim configs/exp1_baseline.yaml
+exp2_noise_resilience.yaml	python -m qkd_sim configs/exp2_noise_resilience.yaml
+exp3_eve_vulnerability.yaml	python -m qkd_sim configs/exp3_eve_vulnerability.yaml
+exp4_e91_mechanics.yaml	python -m qkd_sim configs/exp4_e91_mechanics.yaml
+exp5_bb84_surface.yaml	python -m qkd_sim configs/exp5_bb84_surface.yaml
+exp6_b92_surface.yaml	python -m qkd_sim configs/exp6_b92_surface.yaml
+
+
+
+- MATLAB instruction:
+The CSVs for Exps 5 & 6 use long format (noise_strength, eve_rate, qber_mean)
+MATLAB import: T = readtable('bb84_surface_qber.csv'); Z = reshape(T.qber_mean, 21, 16)';
+
+
+

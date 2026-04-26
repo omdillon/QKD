@@ -56,19 +56,36 @@ class QKDResult:
         return self.key_rate * (1.0 - h_e)
 
     @property
-    def gllp_key_rate(self) -> float:
-        """GLLP/Shor-Preskill secure key rate per transmitted qubit.
-
-        For an ideal single-photon source under a symmetric depolarising
-        channel, the phase error rate equals the bit error rate, giving:
-            r = sifting_ratio * max(0, 1 - 2*h(QBER))
-        Assumes perfect error correction (f_EC = 1).
-        """
+    def secure_key_rate(self) -> float:
+        """Devetak-Winter secure key rate: K = I(A;B) - I(A;E)."""
         if self.sifted_length == 0:
             return 0.0
-        sifting_ratio = self.sifted_length / self.n_qubits
-        per_sifted = 1.0 - 2.0 * self._binary_entropy(self.qber)
-        return sifting_ratio * max(0.0, per_sifted)
+
+        i_ab = self.mutual_information
+
+        if self.protocol_name == "BB84":
+            if self.qber >= 0.110:
+                return 0.0
+            i_ae = self.key_rate * self._binary_entropy(self.qber)
+
+        elif self.protocol_name == "B92":
+            if self.qber >= 0.065:
+                return 0.0
+            # USD attack penalty; states separated by 45°, overlap = 1/√2
+            denominator = 1.0 - (1.0 / np.sqrt(2.0))
+            i_ae = self.key_rate * self._binary_entropy(self.qber / denominator)
+
+        elif self.protocol_name == "E91":
+            s_val = getattr(self, 'abs_s', 0.0)
+            if s_val <= 2.0:
+                return 0.0
+            penalty_term = (1.0 + np.sqrt(max(0.0, (s_val / 2.0) ** 2 - 1.0))) / 2.0
+            i_ae = self.key_rate * self._binary_entropy(penalty_term)
+
+        else:
+            return 0.0
+
+        return max(0.0, i_ab - i_ae)
 
 
 class QKDProtocol(ABC):

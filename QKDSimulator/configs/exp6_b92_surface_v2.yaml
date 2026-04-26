@@ -1,0 +1,20 @@
+# Exp 6 v.2 — B92 3D Surface (CSV export for MATLAB)
+# Parameter ranges restricted to centre QBER around the 6.5% security threshold.
+# B92 is highly sensitive — noise_max=0.06 and eve_max=0.30 bound peak QBER ~ 0.13 (2x threshold),
+# eliminating the large saturated plateau that dominated v.1.
+# Finer grid: 31 noise x 41 eve x 20 trials = 25,420 protocol runs.
+# Output: results/exp6_b92_surface_v2/b92_surface_qber.csv
+mode: surface_sweep
+protocol: b92
+n_qubits: 500
+n_trials: 20
+noise_type: depolarizing
+noise_min: 0.0
+noise_max: 0.06
+noise_steps: 31
+eve_min: 0.0
+eve_max: 0.30
+eve_steps: 41
+output_dir: ./results/exp6_b92_surface_v2
+save_plots: false
+show_plots: false

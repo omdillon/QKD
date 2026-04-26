@@ -32,8 +32,21 @@ class BenchmarkData:
     noise_type: str
     chsh_mean: Optional[np.ndarray] = None
     chsh_std: Optional[np.ndarray] = None
-    gllp_mean: Optional[np.ndarray] = None
-    gllp_std: Optional[np.ndarray] = None
+    secure_rate_mean: Optional[np.ndarray] = None
+    secure_rate_std: Optional[np.ndarray] = None
+
+
+@dataclass
+class SurfaceBenchmarkData:
+    """Results from a 2-D (noise_strength × eve_rate) parameter sweep."""
+    protocol_name: str
+    noise_strengths: np.ndarray   # shape (S,)
+    eve_rates: np.ndarray          # shape (E,)
+    qber_mean: np.ndarray          # shape (S, E)
+    qber_std: np.ndarray           # shape (S, E)
+    n_trials: int
+    n_qubits: int
+    noise_type: str
 
 
 class BenchmarkRunner:
@@ -58,13 +71,13 @@ class BenchmarkRunner:
         qber_results = np.zeros((n_strengths, n_trials))
         key_rate_results = np.zeros((n_strengths, n_trials))
         mutual_info_results = np.zeros((n_strengths, n_trials))
-        gllp_results = np.zeros((n_strengths, n_trials))
+        secure_rate_results = np.zeros((n_strengths, n_trials))
         chsh_results: Optional[np.ndarray] = None
 
         desc = f"{protocol_class.protocol_name()} {noise_type} sweep"
         for i, strength in enumerate(tqdm(strengths, desc=desc, unit="pt")):
             backend = create_backend(noise_type, strength)
-            eve = EveInterceptor(eve_rate, backend) if with_eve else None
+            eve = EveInterceptor(eve_rate) if with_eve else None
 
             for j in range(n_trials):
                 protocol = protocol_class(
@@ -76,7 +89,7 @@ class BenchmarkRunner:
                 qber_results[i, j] = result.qber
                 key_rate_results[i, j] = result.key_rate
                 mutual_info_results[i, j] = result.mutual_information
-                gllp_results[i, j] = result.gllp_key_rate
+                secure_rate_results[i, j] = result.secure_key_rate
 
                 s_val = getattr(result, 's_value', None)
                 if s_val is not None:
@@ -102,8 +115,8 @@ class BenchmarkRunner:
             noise_type=noise_type,
             chsh_mean=chsh_mean,
             chsh_std=chsh_std,
-            gllp_mean=np.mean(gllp_results, axis=1),
-            gllp_std=np.std(gllp_results, axis=1),
+            secure_rate_mean=np.mean(secure_rate_results, axis=1),
+            secure_rate_std=np.std(secure_rate_results, axis=1),
         )
 
     def run_eve_sweep(
@@ -124,14 +137,14 @@ class BenchmarkRunner:
         qber_results = np.zeros((n_rates, n_trials))
         key_rate_results = np.zeros((n_rates, n_trials))
         mutual_info_results = np.zeros((n_rates, n_trials))
-        gllp_results = np.zeros((n_rates, n_trials))
+        secure_rate_results = np.zeros((n_rates, n_trials))
         chsh_results: Optional[np.ndarray] = None
 
         backend = create_backend(noise_type, noise_strength)
 
         desc = f"{protocol_class.protocol_name()} Eve sweep"
         for i, rate in enumerate(tqdm(eve_rates, desc=desc, unit="pt")):
-            eve = EveInterceptor(rate, backend) if rate > 0 else None
+            eve = EveInterceptor(rate) if rate > 0 else None
 
             for j in range(n_trials):
                 protocol = protocol_class(
@@ -143,7 +156,7 @@ class BenchmarkRunner:
                 qber_results[i, j] = result.qber
                 key_rate_results[i, j] = result.key_rate
                 mutual_info_results[i, j] = result.mutual_information
-                gllp_results[i, j] = result.gllp_key_rate
+                secure_rate_results[i, j] = result.secure_key_rate
 
                 s_val = getattr(result, 's_value', None)
                 if s_val is not None:
@@ -169,8 +182,8 @@ class BenchmarkRunner:
             noise_type=noise_type,
             chsh_mean=chsh_mean,
             chsh_std=chsh_std,
-            gllp_mean=np.mean(gllp_results, axis=1),
-            gllp_std=np.std(gllp_results, axis=1),
+            secure_rate_mean=np.mean(secure_rate_results, axis=1),
+            secure_rate_std=np.std(secure_rate_results, axis=1),
         )
 
     def run_protocol_comparison(
@@ -206,3 +219,40 @@ class BenchmarkRunner:
             )
 
         return results
+
+    def run_surface_sweep(
+        self,
+        protocol_class: Type[QKDProtocol],
+        noise_type: str,
+        strengths: np.ndarray,
+        eve_rates: np.ndarray,
+        n_trials: int = 30,
+        n_qubits: int = 100,
+    ) -> SurfaceBenchmarkData:
+        """2-D sweep over noise_strength × eve_rate, collecting mean QBER at each cell."""
+        strengths = np.asarray(strengths)
+        eve_rates = np.asarray(eve_rates)
+        n_s, n_e = len(strengths), len(eve_rates)
+        qber_results = np.zeros((n_s, n_e, n_trials))
+
+        desc = f"{protocol_class.protocol_name()} surface sweep"
+        for i, strength in enumerate(tqdm(strengths, desc=desc, unit="noise")):
+            backend = create_backend(noise_type, strength)
+            for j, rate in enumerate(eve_rates):
+                eve = EveInterceptor(rate) if rate > 0 else None
+                for k in range(n_trials):
+                    result = protocol_class(
+                        n_qubits=n_qubits, backend=backend, eve=eve,
+                    ).run()
+                    qber_results[i, j, k] = result.qber
+
+        return SurfaceBenchmarkData(
+            protocol_name=protocol_class.protocol_name(),
+            noise_strengths=strengths,
+            eve_rates=eve_rates,
+            qber_mean=np.mean(qber_results, axis=2),
+            qber_std=np.std(qber_results, axis=2),
+            n_trials=n_trials,
+            n_qubits=n_qubits,
+            noise_type=noise_type,
+        )

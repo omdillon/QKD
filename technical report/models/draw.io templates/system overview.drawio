@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net">
   <diagram name="Page-1" id="WF3U4LT75nrMDzXhoOqw">
-    <mxGraphModel dx="1588" dy="602" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="500" pageHeight="300" math="0" shadow="0">
+    <mxGraphModel dx="1487" dy="1117" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="500" pageHeight="300" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -64,33 +64,6 @@
         <mxCell id="kHFWzyZ6gfKbY6wp6KWN-9" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Times New Roman;fontSize=11;fillColor=#b0e3e6;strokeColor=#0e8088;" value="noise.py" vertex="1">
           <mxGeometry height="40" width="80" x="200" y="160" as="geometry" />
         </mxCell>
-        <mxCell id="kHFWzyZ6gfKbY6wp6KWN-14" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Times New Roman;fontSize=8;fillColor=#d5e8d4;strokeColor=#82b366;" value="b92_sweep.yaml" vertex="1">
-          <mxGeometry height="40" width="80" x="560" y="100" as="geometry" />
-        </mxCell>
-        <mxCell id="kHFWzyZ6gfKbY6wp6KWN-15" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Times New Roman;fontSize=8;fillColor=#d5e8d4;strokeColor=#82b366;" value="bb84_sweep.yaml" vertex="1">
-          <mxGeometry height="40" width="80" x="460" y="100" as="geometry" />
-        </mxCell>
-        <mxCell id="kHFWzyZ6gfKbY6wp6KWN-16" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Times New Roman;fontSize=8;fillColor=#d5e8d4;strokeColor=#82b366;" value="&lt;font&gt;e91_sweep&lt;/font&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;.yaml&lt;/span&gt;" vertex="1">
-          <mxGeometry height="40" width="80" x="660" y="100" as="geometry" />
-        </mxCell>
-        <mxCell id="kHFWzyZ6gfKbY6wp6KWN-17" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Times New Roman;fontSize=8;fillColor=#d5e8d4;strokeColor=#82b366;" value="baseline.yaml" vertex="1">
-          <mxGeometry height="40" width="80" x="660" y="160" as="geometry" />
-        </mxCell>
-        <mxCell id="kHFWzyZ6gfKbY6wp6KWN-18" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Times New Roman;fontSize=8;fillColor=#d5e8d4;strokeColor=#82b366;" value="b92_eve.yaml" vertex="1">
-          <mxGeometry height="40" width="80" x="560" y="160" as="geometry" />
-        </mxCell>
-        <mxCell id="kHFWzyZ6gfKbY6wp6KWN-19" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Times New Roman;fontSize=8;fillColor=#d5e8d4;strokeColor=#82b366;" value="bb84_eve.yaml" vertex="1">
-          <mxGeometry height="40" width="80" x="460" y="160" as="geometry" />
-        </mxCell>
-        <mxCell id="kHFWzyZ6gfKbY6wp6KWN-20" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Times New Roman;fontSize=8;fillColor=#d5e8d4;strokeColor=#82b366;" value="b92_noisy_eve.yaml" vertex="1">
-          <mxGeometry height="40" width="80" x="560" y="220" as="geometry" />
-        </mxCell>
-        <mxCell id="kHFWzyZ6gfKbY6wp6KWN-21" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Times New Roman;fontSize=8;fillColor=#d5e8d4;strokeColor=#82b366;" value="bb84_noisy_eve.yam&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;l&lt;/span&gt;" vertex="1">
-          <mxGeometry height="40" width="80" x="460" y="220" as="geometry" />
-        </mxCell>
-        <mxCell id="kHFWzyZ6gfKbY6wp6KWN-22" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Times New Roman;fontSize=8;fillColor=#d5e8d4;strokeColor=#82b366;" value="noise_comparison.yaml" vertex="1">
-          <mxGeometry height="40" width="80" x="660" y="220" as="geometry" />
-        </mxCell>
         <mxCell id="kHFWzyZ6gfKbY6wp6KWN-42" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontFamily=Times New Roman;fontColor=light-dark(#b85450, #ededed);" value="Protocols" vertex="1">
           <mxGeometry height="30" width="80" x="-60" y="280" as="geometry" />
         </mxCell>
@@ -100,8 +73,8 @@
         <mxCell id="kHFWzyZ6gfKbY6wp6KWN-44" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontFamily=Times New Roman;fontColor=light-dark(#278c93, #ededed);" value="Modelling" vertex="1">
           <mxGeometry height="30" width="80" x="200" y="280" as="geometry" />
         </mxCell>
-        <mxCell id="kHFWzyZ6gfKbY6wp6KWN-45" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontFamily=Times New Roman;fontColor=light-dark(#82b366, #ededed);" value="Configuration" vertex="1">
-          <mxGeometry height="30" width="80" x="560" y="280" as="geometry" />
+        <mxCell id="kHFWzyZ6gfKbY6wp6KWN-45" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontFamily=Times New Roman;fontColor=light-dark(#82b366, #ededed);" value="Experiment Configuration" vertex="1">
+          <mxGeometry height="30" width="80" x="560" y="286" as="geometry" />
         </mxCell>
         <mxCell id="kHFWzyZ6gfKbY6wp6KWN-47" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Times New Roman;fontSize=11;fillColor=#e1d5e7;strokeColor=#9673a6;" value="__init__.py" vertex="1">
           <mxGeometry height="40" width="80" x="330" y="100" as="geometry" />
@@ -114,6 +87,24 @@
         </mxCell>
         <mxCell id="kHFWzyZ6gfKbY6wp6KWN-50" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontFamily=Times New Roman;fontColor=light-dark(#9673a6, #ededed);" value="Initialisation" vertex="1">
           <mxGeometry height="30" width="80" x="330" y="220" as="geometry" />
+        </mxCell>
+        <mxCell id="kHFWzyZ6gfKbY6wp6KWN-14" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Times New Roman;fontSize=8;fillColor=#d5e8d4;strokeColor=#82b366;" value="exp4_e91&lt;span style=&quot;color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255)); background-color: transparent;&quot;&gt;_mechanics.yaml&lt;/span&gt;" vertex="1">
+          <mxGeometry height="40" width="130" x="610" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="kHFWzyZ6gfKbY6wp6KWN-15" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Times New Roman;fontSize=8;fillColor=#d5e8d4;strokeColor=#82b366;" value="exp1_baseline.yaml" vertex="1">
+          <mxGeometry height="40" width="130" x="460" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="kHFWzyZ6gfKbY6wp6KWN-18" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Times New Roman;fontSize=8;fillColor=#d5e8d4;strokeColor=#82b366;" value="exp5_bb84_surface.yaml" vertex="1">
+          <mxGeometry height="40" width="130" x="610" y="160" as="geometry" />
+        </mxCell>
+        <mxCell id="kHFWzyZ6gfKbY6wp6KWN-19" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Times New Roman;fontSize=8;fillColor=#d5e8d4;strokeColor=#82b366;" value="exp2_noise_&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;resilience.yaml&lt;/span&gt;" vertex="1">
+          <mxGeometry height="40" width="130" x="460" y="160" as="geometry" />
+        </mxCell>
+        <mxCell id="kHFWzyZ6gfKbY6wp6KWN-20" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Times New Roman;fontSize=8;fillColor=#d5e8d4;strokeColor=#82b366;" value="exp6_b92_surface.yaml" vertex="1">
+          <mxGeometry height="40" width="130" x="610" y="220" as="geometry" />
+        </mxCell>
+        <mxCell id="kHFWzyZ6gfKbY6wp6KWN-21" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Times New Roman;fontSize=8;fillColor=#d5e8d4;strokeColor=#82b366;" value="exp3_eve_vulnerability&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;.yaml&lt;/span&gt;" vertex="1">
+          <mxGeometry height="40" width="130" x="460" y="220" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>

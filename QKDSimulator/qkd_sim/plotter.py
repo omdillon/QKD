@@ -24,11 +24,32 @@ if _FONT_DIR.is_dir():
 
 plt.rcParams.update(STYLE.get_rcparams())
 
-# Asymptotic QBER security thresholds.
-#   BB84: 11.0% - Shor & Preskill (2000)
-#   B92:   6.5% - Matsumoto (2013)
-#   E91 has no single QBER threshold (security is a 2D condition over Q and |S|).
-_QBER_THRESHOLDS = {'BB84': 0.110, 'B92': 0.065}
+def _binary_entropy_scalar(x: float) -> float:
+    if x <= 0.0 or x >= 1.0:
+        return 0.0
+    return -x * np.log2(x) - (1.0 - x) * np.log2(1.0 - x)
+
+
+def _bisect(f, lo: float = 1e-9, hi: float = 0.5, n: int = 70) -> float:
+    """Bisection root-finder (assumes f(lo) > 0 and f(hi) < 0)."""
+    for _ in range(n):
+        mid = (lo + hi) / 2.0
+        if f(mid) > 0.0:
+            lo = mid
+        else:
+            hi = mid
+    return (lo + hi) / 2.0
+
+
+# QBER security thresholds derived from the Devetak-Winter bound equations.
+# BB84: DW rate = key_rate*(1 - 2*h(q)) = 0 when h(q) = 0.5
+_BB84_QBER_THRESHOLD = _bisect(lambda q: 0.5 - _binary_entropy_scalar(q))
+
+# B92: threshold matches the hard-coded cutoff in base.py (Devetak-Winter, USD attack model)
+_B92_QBER_THRESHOLD = 0.065
+
+# E91 has no single QBER threshold; security is conditioned on |S| > 2 (CHSH violation).
+_QBER_THRESHOLDS = {'BB84': _BB84_QBER_THRESHOLD, 'B92': _B92_QBER_THRESHOLD}
 
 
 def _eve_crossing_rate(eve_rates, qber_mean, threshold):
@@ -43,6 +64,22 @@ def _eve_crossing_rate(eve_rates, qber_mean, threshold):
     if y1 == y0:
         return x0
     return x0 + (threshold - y0) * (x1 - x0) / (y1 - y0)
+
+
+def _secure_rate_zero_crossing(parameter_values, secure_rate_mean):
+    """Interpolated parameter value where the DW secure key rate first reaches zero."""
+    y = np.asarray(secure_rate_mean)
+    below = np.where(y <= 0.0)[0]
+    if len(below) == 0:
+        return None
+    if below[0] == 0:
+        return float(parameter_values[0])
+    idx = int(below[0])
+    x0, x1 = float(parameter_values[idx - 1]), float(parameter_values[idx])
+    y0, y1 = float(y[idx - 1]), float(y[idx])
+    if y1 == y0:
+        return x0
+    return x0 + (0.0 - y0) * (x1 - x0) / (y1 - y0)
 
 
 class QKDPlotter:
@@ -106,12 +143,12 @@ class QKDPlotter:
             output_dir=output_dir, show=show,
         )
 
-        # --- GLLP secure key rate figure ---
-        if data.gllp_mean is not None:
-            self._plot_gllp(
+        # --- Devetak-Winter secure key rate figure ---
+        if data.secure_rate_mean is not None:
+            self._plot_secure_key_rate(
                 data, colour, marker,
                 xlabel='Depolarising Noise Strength',
-                title=(f'BB84 Protocol - Depolarising Channel - GLLP Secure Key Rate\n'
+                title=(f'BB84 Protocol - Depolarising Channel - Secure Key Rate\n'
                        f'({data.n_qubits} qubits, {data.n_trials} trials per point)'),
                 x_pad=0.005,
                 output_dir=output_dir, show=show,
@@ -277,6 +314,17 @@ class QKDPlotter:
             output_dir=output_dir, show=show,
         )
 
+        # --- Devetak-Winter secure key rate figure ---
+        if data.secure_rate_mean is not None:
+            self._plot_secure_key_rate(
+                data, colour, marker,
+                xlabel='Depolarising Noise Strength',
+                title=(f'B92 Protocol - Depolarising Channel - Secure Key Rate\n'
+                       f'({data.n_qubits} qubits, {data.n_trials} trials per point)'),
+                x_pad=0.005,
+                output_dir=output_dir, show=show,
+            )
+
     def plot_b92_eve(self, data: BenchmarkData,
                      output_dir: Optional[Path] = None,
                      show: bool = False) -> None:
@@ -408,6 +456,17 @@ class QKDPlotter:
             x_pad=0.005,
             output_dir=output_dir, show=show,
         )
+
+        # --- Devetak-Winter secure key rate figure ---
+        if data.secure_rate_mean is not None:
+            self._plot_secure_key_rate(
+                data, colour, marker,
+                xlabel='Depolarising Noise Strength',
+                title=(f'E91 Protocol - Depolarising Channel {topo_str} - Secure Key Rate\n'
+                       f'({data.n_qubits} photon pairs, {data.n_trials} trials per point)'),
+                x_pad=0.005,
+                output_dir=output_dir, show=show,
+            )
 
         if data.chsh_mean is None:
             return
@@ -547,6 +606,52 @@ class QKDPlotter:
         plt.tight_layout()
         self._finalise(fig, output_dir, 'mutual_info_vs_noise.png', show)
 
+        # --- Devetak-Winter secure key rate comparison ---
+        if all(data.secure_rate_mean is not None for data in data_dict.values()):
+            fig, ax = plt.subplots(figsize=STYLE.figsize_comparison)
+            all_y_max = 0.0
+            for proto_name, data in data_dict.items():
+                colour = STYLE.protocol_colours.get(proto_name, STYLE.default_colour)
+                marker = STYLE.protocol_markers.get(proto_name, STYLE.default_marker)
+                y = data.secure_rate_mean * 100
+                y_err = data.secure_rate_std / np.sqrt(data.n_trials) * 100
+                all_y_max = max(all_y_max, float(y.max()))
+                ax.errorbar(
+                    data.parameter_values, y, yerr=y_err,
+                    fmt=f'{marker}-', capsize=STYLE.errorbar_capsize,
+                    linewidth=STYLE.errorbar_linewidth,
+                    markersize=STYLE.errorbar_markersize,
+                    color=colour, alpha=STYLE.errorbar_alpha,
+                    label=f'{proto_name} Protocol',
+                )
+            for proto_name, data in data_dict.items():
+                if data.secure_rate_mean is None:
+                    continue
+                colour = STYLE.protocol_colours.get(proto_name, STYLE.default_colour)
+                x_thresh = _secure_rate_zero_crossing(data.parameter_values, data.secure_rate_mean)
+                if x_thresh is not None:
+                    ax.axvline(x=x_thresh, color=colour,
+                               linestyle=STYLE.threshold_linestyle_vertical,
+                               linewidth=STYLE.threshold_linewidth,
+                               alpha=STYLE.threshold_alpha_vertical,
+                               ymax=0.66,
+                               label=f'{proto_name} Threshold (noise ≈ {x_thresh:.3f})')
+            ax.set_xlabel('Depolarising Noise Strength', fontweight=STYLE.font_weight_axis_label)
+            ax.set_ylabel('Secure Key Rate (bits per 100 qubits)',
+                          fontweight=STYLE.font_weight_axis_label)
+            ax.set_title(
+                f'Three-Protocol Benchmark - Depolarising Channel - Secure Key Rate (Devetak-Winter)\n'
+                f'({sample_data.n_trials} trials/point, '
+                f'{sample_data.n_qubits} qubits per trial)',
+                fontweight=STYLE.font_weight_title, pad=STYLE.title_pad)
+            ax.set_xlim(sample_data.parameter_values.min() - 0.005,
+                        sample_data.parameter_values.max() + 0.005)
+            ax.set_ylim(-1, max(all_y_max * 1.15, 1.0))
+            ax.grid(True, alpha=STYLE.grid_alpha)
+            ax.legend(framealpha=STYLE.legend_framealpha)
+            plt.tight_layout()
+            self._finalise(fig, output_dir, 'secure_key_rate_vs_noise.png', show)
+
     def plot_baseline_comparison(self, data_dict: Dict[str, BenchmarkData],
                                   output_dir: Optional[Path] = None,
                                   show: bool = False) -> None:
@@ -608,6 +713,75 @@ class QKDPlotter:
         self._finalise(fig, output_dir, 'baseline_mutual_info.png', show)
 
     # --------------------------------------------------------------
+    # Eve vulnerability comparison (BB84 vs B92)
+    # --------------------------------------------------------------
+
+    def plot_eve_vulnerability(self, data_dict: Dict[str, BenchmarkData],
+                               output_dir: Optional[Path] = None,
+                               show: bool = False) -> None:
+        """BB84 vs B92: Eve interception rate vs. QBER with D-W threshold annotations.
+
+        Both series share one axes. Horizontal threshold lines are drawn in each
+        protocol's own colour; vertical crossing lines use the other protocol's colour
+        so they remain visually distinct even when thresholds sit close together.
+        markevery=5 keeps markers legible at high step counts.
+        """
+        ordered = [p for p in ('BB84', 'B92') if p in data_dict]
+        for p in data_dict:
+            if p not in ordered:
+                ordered.append(p)
+
+        fig, ax = plt.subplots(figsize=STYLE.figsize_comparison)
+
+        for proto_name in ordered:
+            data = data_dict[proto_name]
+            colour = STYLE.protocol_colours.get(proto_name, STYLE.default_colour)
+            marker = STYLE.protocol_markers.get(proto_name, STYLE.default_marker)
+            sem = data.qber_std / np.sqrt(data.n_trials)
+            ax.errorbar(
+                data.parameter_values, data.qber_mean, yerr=sem,
+                fmt=f'{marker}-', markevery=5, markersize=5,
+                capsize=STYLE.errorbar_capsize, capthick=STYLE.errorbar_capthick,
+                linewidth=STYLE.errorbar_linewidth, color=colour, ecolor=colour,
+                alpha=STYLE.errorbar_alpha, label=f'{proto_name} Protocol',
+            )
+            if proto_name in _QBER_THRESHOLDS:
+                threshold = _QBER_THRESHOLDS[proto_name]
+                ax.axhline(y=threshold, color=colour,
+                           linestyle=STYLE.threshold_linestyle_horizontal,
+                           linewidth=STYLE.threshold_linewidth,
+                           alpha=STYLE.threshold_alpha_horizontal,
+                           label=f'{proto_name} D-W Threshold ({threshold:.1%})')
+                e_crit = _eve_crossing_rate(data.parameter_values, data.qber_mean, threshold)
+                if e_crit is not None:
+                    vline_kwargs = dict(
+                        linestyle=STYLE.threshold_linestyle_vertical,
+                        linewidth=STYLE.threshold_linewidth,
+                        alpha=STYLE.threshold_alpha_vertical,
+                        label=f'{proto_name} Threshold Crossing (Eve ≈ {e_crit:.2f})',
+                    )
+                    if proto_name == 'B92':
+                        vline_kwargs['ymax'] = 0.66
+                    ax.axvline(x=e_crit, color=colour, **vline_kwargs)
+
+        sample_data = data_dict[ordered[0]]
+        ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda v, _: f'{v:.0%}'))
+        ax.set_xlabel('Eve Interception Rate', fontweight=STYLE.font_weight_axis_label)
+        ax.set_ylabel('QBER (%)', fontweight=STYLE.font_weight_axis_label)
+        ax.set_title(
+            f'Eve Vulnerability Comparison - BB84 vs B92 - QBER\n'
+            f'({sample_data.n_qubits} qubits, {sample_data.n_trials} trials per point)',
+            fontweight=STYLE.font_weight_title, pad=STYLE.title_pad)
+        ax.set_xlim(sample_data.parameter_values.min() - 0.01,
+                    sample_data.parameter_values.max() + 0.01)
+        y_upper = max(d.qber_mean.max() for d in data_dict.values()) * 1.3
+        ax.set_ylim(0, min(y_upper, 0.55))
+        ax.grid(True, alpha=STYLE.grid_alpha)
+        ax.legend(loc='upper left', framealpha=STYLE.legend_framealpha)
+        plt.tight_layout()
+        self._finalise(fig, output_dir, 'eve_vulnerability_qber.png', show)
+
+    # --------------------------------------------------------------
 
     def _plot_mutual_info(self, data: BenchmarkData, colour: str, marker: str,
                           xlabel: str, title: str, x_pad: float,
@@ -635,19 +809,19 @@ class QKDPlotter:
         plt.tight_layout()
         self._finalise(fig, output_dir, 'mutual_info.png', show)
 
-    def _plot_gllp(self, data: BenchmarkData, colour: str, marker: str,
-                   xlabel: str, title: str, x_pad: float,
-                   output_dir: Optional[Path], show: bool) -> None:
-        """GLLP/Shor-Preskill secure key rate: sifting_ratio * max(0, 1 - 2*h(QBER))."""
+    def _plot_secure_key_rate(self, data: BenchmarkData, colour: str, marker: str,
+                              xlabel: str, title: str, x_pad: float,
+                              output_dir: Optional[Path], show: bool) -> None:
+        """Devetak-Winter secure key rate: K = I(A;B) - I(A;E)."""
         fig, ax = plt.subplots(figsize=STYLE.figsize_single)
-        y = data.gllp_mean * 100
-        y_err = data.gllp_std / np.sqrt(data.n_trials) * 100
+        y = data.secure_rate_mean * 100
+        y_err = data.secure_rate_std / np.sqrt(data.n_trials) * 100
         ax.errorbar(
             data.parameter_values, y, yerr=y_err,
             fmt=f'{marker}-', capsize=STYLE.errorbar_capsize,
             capthick=STYLE.errorbar_capthick, linewidth=STYLE.errorbar_linewidth,
             markersize=STYLE.errorbar_markersize, color=colour, ecolor=colour,
-            alpha=STYLE.errorbar_alpha, label='GLLP Secure Key Rate',
+            alpha=STYLE.errorbar_alpha, label='Secure Key Rate (Devetak-Winter)',
         )
         # Overlay mutual information for direct comparison
         ax.plot(
@@ -655,6 +829,13 @@ class QKDPlotter:
             linestyle='--', color=colour, alpha=0.45,
             linewidth=STYLE.errorbar_linewidth, label='Mutual Information (Shannon)',
         )
+        x_thresh = _secure_rate_zero_crossing(data.parameter_values, data.secure_rate_mean)
+        if x_thresh is not None:
+            ax.axvline(x=x_thresh, color=STYLE.threshold_colour,
+                       linestyle=STYLE.threshold_linestyle_vertical,
+                       linewidth=STYLE.threshold_linewidth,
+                       alpha=STYLE.threshold_alpha_vertical,
+                       label=f'Security Threshold (noise ≈ {x_thresh:.3f})')
         ax.set_xlabel(xlabel, fontweight=STYLE.font_weight_axis_label)
         ax.set_ylabel('Secure Key Rate (bits per 100 qubits)',
                       fontweight=STYLE.font_weight_axis_label)
@@ -665,7 +846,7 @@ class QKDPlotter:
         ax.grid(True, alpha=STYLE.grid_alpha)
         ax.legend(loc='upper right', framealpha=STYLE.legend_framealpha)
         plt.tight_layout()
-        self._finalise(fig, output_dir, 'gllp_key_rate.png', show)
+        self._finalise(fig, output_dir, 'secure_key_rate.png', show)
 
     def _finalise(self, fig: plt.Figure,
                   output_dir: Optional[Path], filename: str,

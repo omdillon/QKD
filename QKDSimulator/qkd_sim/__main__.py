@@ -16,7 +16,7 @@ import numpy as np
 from .config import load_config
 from .noise import create_backend
 from .eve import EveInterceptor
-from .benchmark import BenchmarkRunner
+from .benchmark import BenchmarkRunner, SurfaceBenchmarkData
 from .plotter import QKDPlotter
 from .protocols.bb84 import BB84Protocol
 from .protocols.b92 import B92Protocol
@@ -39,8 +39,16 @@ EXPERIMENT_PLOTTERS = {
     'b92_eve':          ('eve_sweep',           'plot_b92_eve'),
     'b92_noisy_eve':    ('eve_sweep',           'plot_b92_noisy_eve'),
     'e91_sweep':        ('sweep',               'plot_e91_sweep'),
-    'noise_comparison': ('protocol_comparison', 'plot_noise_comparison'),
-    'baseline':         ('protocol_comparison', 'plot_baseline_comparison'),
+    'noise_comparison':       ('protocol_comparison', 'plot_noise_comparison'),
+    'baseline':               ('protocol_comparison', 'plot_baseline_comparison'),
+    'exp1_baseline':          ('protocol_comparison', 'plot_baseline_comparison'),
+    'exp2_noise_resilience':  ('protocol_comparison', 'plot_noise_comparison'),
+    'exp3_eve_vulnerability': ('eve_comparison',      'plot_eve_vulnerability'),
+    'exp4_e91_mechanics':     ('sweep',               'plot_e91_sweep'),
+    'exp5_bb84_surface':      ('surface_sweep',       '__csv__'),
+    'exp6_b92_surface':       ('surface_sweep',       '__csv__'),
+    'exp5_bb84_surface_v2':   ('surface_sweep',       '__csv__'),
+    'exp6_b92_surface_v2':    ('surface_sweep',       '__csv__'),
 }
 
 
@@ -58,7 +66,7 @@ def run_single(config):
     """Run a single protocol trial (no plotting)."""
     protocol_class = PROTOCOLS[config.protocol]
     backend = create_backend(config.noise_type, config.noise_strength)
-    eve = EveInterceptor(config.eve_rate, backend) if config.eve_rate is not None else None
+    eve = EveInterceptor(config.eve_rate) if config.eve_rate is not None else None
 
     protocol = protocol_class(
         n_qubits=config.n_qubits, backend=backend, eve=eve,
@@ -161,6 +169,66 @@ def run_protocol_comparison(config, plot_method_name):
     method(data_dict, output_dir=_output_dir(config), show=config.show_plots)
 
 
+def run_eve_comparison(config, plot_method_name):
+    """Run an Eve interception rate sweep across multiple protocols and produce a combined plot."""
+    protocol_classes = [PROTOCOLS[name] for name in config.protocols]
+    eve_rates = np.linspace(config.eve_min, config.eve_max, config.eve_steps)
+
+    runner = BenchmarkRunner()
+    data_dict = {}
+    for proto_cls in protocol_classes:
+        name = proto_cls.protocol_name()
+        print(f"\n  === {name} ===")
+        data_dict[name] = runner.run_eve_sweep(
+            protocol_class=proto_cls,
+            eve_rates=eve_rates,
+            n_trials=config.n_trials,
+            n_qubits=config.n_qubits,
+            noise_type=config.noise_type,
+            noise_strength=config.noise_strength,
+        )
+
+    if not (config.save_plots or config.show_plots):
+        return
+
+    plotter = QKDPlotter()
+    method = getattr(plotter, plot_method_name)
+    method(data_dict, output_dir=_output_dir(config), show=config.show_plots)
+
+
+def run_surface_sweep(config):
+    """Run a 2-D noise × Eve sweep for a single protocol and write a CSV for MATLAB."""
+    import csv
+
+    protocol_class = PROTOCOLS[config.protocol]
+    strengths = np.linspace(config.noise_min, config.noise_max, config.noise_steps)
+    eve_rates = np.linspace(config.eve_min, config.eve_max, config.eve_steps)
+
+    runner = BenchmarkRunner()
+    surface = runner.run_surface_sweep(
+        protocol_class=protocol_class,
+        noise_type=config.noise_type,
+        strengths=strengths,
+        eve_rates=eve_rates,
+        n_trials=config.n_trials,
+        n_qubits=config.n_qubits,
+    )
+
+    out_dir = Path(config.output_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    csv_path = out_dir / f"{config.protocol.lower()}_surface_qber.csv"
+
+    with open(csv_path, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['noise_strength', 'eve_rate', 'qber_mean'])
+        for i, noise in enumerate(surface.noise_strengths):
+            for j, eve in enumerate(surface.eve_rates):
+                writer.writerow([f'{noise:.4f}', f'{eve:.4f}',
+                                  f'{surface.qber_mean[i, j]:.6f}'])
+
+    print(f"  CSV saved: {csv_path}")
+
+
 def main():
     parser = argparse.ArgumentParser(description='QKD Simulation Platform')
     parser.add_argument('config_file', help='Path to YAML config file')
@@ -196,6 +264,10 @@ def main():
             run_eve_sweep(config, plot_method_name)
         elif config.mode == 'protocol_comparison':
             run_protocol_comparison(config, plot_method_name)
+        elif config.mode == 'eve_comparison':
+            run_eve_comparison(config, plot_method_name)
+        elif config.mode == 'surface_sweep':
+            run_surface_sweep(config)
         else:
             raise ValueError(f"Unhandled mode: {config.mode}")
 

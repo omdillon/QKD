@@ -1,0 +1,15 @@
+# Exp 4 — E91 Entanglement Mechanics
+# Noise vs. S-parameter and QBER twin-axis plot.
+# Static thresholds: Tsirelson bound |S|=2sqrt(2) and classical bound |S|=2.
+mode: sweep
+protocol: e91
+n_qubits: 1000
+n_trials: 30
+noise_type: depolarizing
+noise_min: 0.0
+noise_max: 0.30
+noise_steps: 31
+e91_channel_topology: both
+output_dir: ./results/exp4_e91_mechanics
+save_plots: true
+show_plots: false

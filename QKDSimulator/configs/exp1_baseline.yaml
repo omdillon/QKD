@@ -1,0 +1,18 @@
+# Exp 1 — Baseline Proof
+# Bar chart of QBER and Mutual Information across all 3 protocols on a clean channel.
+# noise_steps: 1 point at 0.0; plot_baseline_comparison reads index [0].
+mode: protocol_comparison
+protocols:
+  - bb84
+  - b92
+  - e91
+n_qubits: 1000
+n_trials: 50
+noise_type: none
+noise_min: 0.0
+noise_max: 0.0
+noise_steps: 1
+e91_channel_topology: both
+output_dir: ./results/exp1_baseline
+save_plots: true
+show_plots: false

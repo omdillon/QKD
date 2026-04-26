@@ -1,0 +1,61 @@
+All three protocols on one plot, with security thresholds:
+- noise strength x mutual information
+- noise strength x qber
+- noise strength x secure key rate by DW bound
+- baseline mutual info barchart on an ideal channel
+
+BB84, B92 on one plot with security thresholds;
+- eve rate x qber
+- noise x qber
+
+Potential 3D plots, with security threshold as a z-plane:
+- BB84: eve rate x noise strength x qber
+- B92: eve rate x noise strength x qber
+
+Currently 2D with two curves, could be 3D with 2 surfaces for CHSH or QBER:
+- noise strength x QBER + |S| : on the same plot, with the tsirelson bound = 2.828..., and classical bound = 2
+- noise strenght x mutual infomation
+- noise strength x secure key rate
+
+Dependent variables:
+- QBER
+- Mutual Infomation
+- Secure key rate
+- S parameter
+
+independent variables:
+- noise strength
+- eve intercept rate
+
+
+I have these possible plotting parameters that could be used on an axis, help me determine if they could be used for a 3D plot:
+Dependent variables:
+- QBER
+- Mutual Infomation
+- Secure key rate
+- S parameter
+
+independent variables:
+- noise strength
+- any other independents you can identify in the system
+
+-------------------------------------------------------------------------------------------------------------
+
+I now have a specific list of experiments I want to complete to satisfy the requirements of the technical report. This list is as follows: 
+
+1. Baseline Proof: Bar chart of Mutual Info & QBER for all three protocols on an ideal channel.
+
+2. Noise Resilience: Noise vs. Secure Key Rate for BB84, B92, and E91, overlaid on the same plot.
+
+3. Eve Vulnerability: Eve Rate vs. QBER for BB84 and B92, overlaid on the same plot, with dynamic QBER security thresholds (where D-W bound,  K = 0), and perpendicular x-line for intercept thresholds in contrasting colours for plot visibility.
+
+4. E91 Entanglement Mechanics (2D Twin-Axis as is currently): Noise vs. S-Parameter & QBER (Proves E91's unique security mechanism), with current static security thresholds at tsireslon bound S = 2sqrt2, and classical bound S = 2.
+
+The Capstone 3D Plots: 
+I need you to build a feature to enable me to export a correctly formatted and named, .csv file for the following two experiments, so that I can take the data, and plot it using MATLABs features for 3D surface plots. This data extraction is only necessary for the 2 experiments below, in which, BB84 and B92 undergo a simulation that will enable me to extract correlated noise strength, ever rate, and QBER data for plotting on a single 3D surface plot for each protocol. for details about this implementation, refer to "3D visuals requirements PRD" and reason with the suggested changes. 
+
+5. BB84 Noise Strength vs. Eve Rate vs. QBER with the 11% threshold plane (Demonstrates multi-variable system dynamics).
+6. B92 Noise Strength vs. Eve Rate vs. QBER with the 6.5% threshold plane (Demonstrates multi-variable system dynamics).
+
+
+I also want to optimise the plotting mechanics to reduce the time to generate experimental data. I only need to perform the experiments config runs for the data used to generate these plots, hence plan a change that will enable me run a config file for experiment 1-6 across 6 new config files only. Much of the logic to complete these experiments already exists, I just need you to streamline it for me. I also need you to ensure the resultant plot .png files are of dpi = 300, and are appropriately named. Plan these system changes, and breakdown what needs to change for me.

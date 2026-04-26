@@ -1,0 +1,18 @@
+# Exp 5 — BB84 3D Surface (CSV export for MATLAB)
+# Noise Strength x Eve Rate x QBER grid.
+# Grid: 16 noise points x 21 Eve points x 15 trials = 5,040 protocol runs.
+# Output: results/exp5_bb84_surface/bb84_surface_qber.csv
+mode: surface_sweep
+protocol: bb84
+n_qubits: 500
+n_trials: 15
+noise_type: depolarizing
+noise_min: 0.0
+noise_max: 0.30
+noise_steps: 16
+eve_min: 0.0
+eve_max: 1.0
+eve_steps: 21
+output_dir: ./results/exp5_bb84_surface
+save_plots: false
+show_plots: false

@@ -57,6 +57,46 @@ class EveInterceptor:
 
         return output_circuits, np.array(intercepted_indices, dtype=int)
 
+    def intercept_b92(self, circuits: List[QuantumCircuit]) -> Tuple[List[QuantumCircuit], np.ndarray]:
+        """
+        B92-specific intercept-resend attack.
+
+        Eve measures each intercepted qubit in a random basis, then re-prepares
+        using B92 encoding: result 0 -> |0>, result 1 -> |+>. This matches the
+        physical attack since Eve knows the protocol's state alphabet.
+        """
+        output_circuits = list(circuits)
+        intercepted_indices = []
+        eve_bases = []
+        measure_circuits = []
+
+        for i, qc in enumerate(circuits):
+            if np.random.random() < self.interception_rate:
+                intercepted_indices.append(i)
+                eve_basis = np.random.randint(0, 2)
+                eve_bases.append(eve_basis)
+
+                measure_qc = qc.copy()
+                if eve_basis == 1:
+                    measure_qc.h(0)
+                measure_qc.measure(0, 0)
+                measure_circuits.append(measure_qc)
+
+        if measure_circuits:
+            job = self._eve_backend.run(measure_circuits, shots=1, memory=True)
+            result = job.result()
+
+            for idx, orig_i in enumerate(intercepted_indices):
+                eve_result = int(result.get_memory(idx)[0])
+                # Re-prepare using B92 encoding: 0 -> |0>, 1 -> |+>
+                new_qc = QuantumCircuit(1, 1)
+                if eve_result == 1:
+                    new_qc.h(0)
+                new_qc.id(0)
+                output_circuits[orig_i] = new_qc
+
+        return output_circuits, np.array(intercepted_indices, dtype=int)
+
     def _prepare_replacement(self, bit_value: int, basis: int) -> QuantumCircuit:
         """Build a fresh qubit encoding Eve's result in the same basis."""
         new_qc = QuantumCircuit(1, 1)

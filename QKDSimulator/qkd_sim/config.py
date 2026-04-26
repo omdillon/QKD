@@ -9,7 +9,8 @@ from typing import List, Optional
 import yaml
 
 
-_VALID_MODES = {'single', 'sweep', 'eve_sweep', 'protocol_comparison'}
+_VALID_MODES = {'single', 'sweep', 'eve_sweep', 'protocol_comparison',
+                'eve_comparison', 'surface_sweep'}
 
 
 @dataclass

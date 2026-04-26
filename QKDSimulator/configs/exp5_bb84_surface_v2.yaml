@@ -1,0 +1,21 @@
+# Exp 5 v.2 — BB84 3D Surface (CSV export for MATLAB)
+# Parameter ranges restricted to centre QBER around the 11% security threshold.
+# At zero eve, QBER ~ noise/2, so noise_max=0.14 gives peak QBER ~ 0.22 (2x threshold).
+# At zero noise, intercept-resend gives QBER ~ eve/4, so eve_max=0.60 gives ~ 0.15.
+# Combined peak QBER ~ 0.22, placing the 11% threshold at the z-axis midpoint.
+# Finer grid: 31 noise x 41 eve x 20 trials = 25,420 protocol runs.
+# Output: results/exp5_bb84_surface_v2/bb84_surface_qber.csv
+mode: surface_sweep
+protocol: bb84
+n_qubits: 500
+n_trials: 20
+noise_type: depolarizing
+noise_min: 0.0
+noise_max: 0.14
+noise_steps: 31
+eve_min: 0.0
+eve_max: 0.60
+eve_steps: 41
+output_dir: ./results/exp5_bb84_surface_v2
+save_plots: false
+show_plots: false
