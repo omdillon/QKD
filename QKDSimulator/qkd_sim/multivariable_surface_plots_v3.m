@@ -4,6 +4,7 @@
 % QBER displayed as percentage (0-100%).
 %   Approach A — transparent flat threshold plane overlaid on the surface
 %   Approach B — bicolour split colormap (blue/orange below, red above threshold)
+%   Approach C — same as B with 2-D Gaussian smoothing (sigma=1, 5x5 kernel)
 %
 % Requires v.3 CSVs generated from:
 %   configs/exp5_bb84_surface_v3.yaml  (noise 0-0.30, eve 0-0.60, 31x41 grid)
@@ -50,6 +51,11 @@ if ~isfile(bb84_csv)
 else
     T_bb84 = readtable(bb84_csv);
     Z_bb84 = reshape(T_bb84.qber_mean, 41, 31)' * 100;   % 31x41, percent
+    Z_bb84 = min(Z_bb84, ZLIM_BB84(2));   % clamp to zlim ceiling to prevent face-clipping artefacts
+    [kx, ky] = meshgrid(-2:2, -2:2);
+    gkernel  = exp(-(kx.^2 + ky.^2) / 2);
+    gkernel  = gkernel / sum(gkernel(:));
+    Z_bb84_smooth = min(conv2(Z_bb84, gkernel, 'same'), ZLIM_BB84(2));
 
     % -- BB84 Approach A: transparent threshold plane ---------------------
     fig_bb84_A = figure('Position', [100 100 1200 750], 'Color', 'white');
@@ -63,6 +69,7 @@ else
     cb.Label.FontSize = SZ_LABEL;
     zlim(ax, ZLIM_BB84);
     clim(ax, ZLIM_BB84);
+    cb.Ticks = linspace(ZLIM_BB84(1), ZLIM_BB84(2), 5);
     hold(ax, 'on');
 
     Z_plane = THRESH_BB84 * ones(size(Z_bb84));
@@ -115,12 +122,15 @@ else
     cb.Label.FontSize = SZ_LABEL;
     zlim(ax, ZLIM_BB84);
     clim(ax, ZLIM_BB84);
+    cb.Ticks = linspace(ZLIM_BB84(1), ZLIM_BB84(2), 5);
     hold(ax, 'on');
 
     % Dashed perimeter at threshold height
-    plot3(ax, [0 0.60 0.60 0 0], [0 0 0.30 0.30 0], ...
+    h_thresh = plot3(ax, [0 0.60 0.60 0 0], [0 0 0.30 0.30 0], ...
         repmat(THRESH_BB84, 1, 5), ...
         '--', 'Color', [C_THRESH 0.7], 'LineWidth', 1.5);
+    legend(ax, h_thresh, sprintf('Security Threshold (%.0f%%)', THRESH_BB84), ...
+        'FontName', FONT, 'FontSize', SZ_LEGEND, 'Box', 'on', 'BackgroundAlpha', 0.8);
 
     xlabel(ax, 'Eve Interception Rate', ...
         'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
@@ -138,6 +148,54 @@ else
     out_B = fullfile(fileparts(bb84_csv), 'exp5_bb84_surface_qber_v3_approach_B.png');
     exportgraphics(fig_bb84_B, out_B, 'Resolution', 300);
     fprintf('Saved: %s\n', out_B);
+
+    % -- BB84 Approach C: bicolour split colormap + Gaussian smoothing -----
+    fig_bb84_C = figure('Position', [100 100 1200 750], 'Color', 'white');
+    ax = axes(fig_bb84_C);
+
+    surf(ax, Eve_bb84, Noise_bb84, Z_bb84_smooth, 'EdgeColor', 'none');
+
+    n_below = 128;
+    n_above = 128;
+    cmap_below = [linspace(0.05, 0.53, n_below)', ...
+                  linspace(0.21, 0.81, n_below)', ...
+                  linspace(0.37, 0.98, n_below)'];
+    cmap_above = [linspace(1.00, 1.00, n_above)', ...
+                  linspace(0.60, 0.00, n_above)', ...
+                  linspace(0.60, 0.00, n_above)'];
+    colormap(ax, [cmap_below; cmap_above]);
+
+    cb = colorbar(ax);
+    cb.Label.String   = 'QBER (%)';
+    cb.Label.FontName = FONT;
+    cb.Label.FontSize = SZ_LABEL;
+    zlim(ax, ZLIM_BB84);
+    clim(ax, ZLIM_BB84);
+    cb.Ticks = linspace(ZLIM_BB84(1), ZLIM_BB84(2), 5);
+    hold(ax, 'on');
+
+    h_thresh = plot3(ax, [0 0.60 0.60 0 0], [0 0 0.30 0.30 0], ...
+        repmat(THRESH_BB84, 1, 5), ...
+        '--', 'Color', [C_THRESH 0.7], 'LineWidth', 1.5);
+    legend(ax, h_thresh, sprintf('Security Threshold (%.0f%%)', THRESH_BB84), ...
+        'FontName', FONT, 'FontSize', SZ_LEGEND, 'Box', 'on', 'BackgroundAlpha', 0.8);
+
+    xlabel(ax, 'Eve Interception Rate', ...
+        'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
+    ylabel(ax, 'Noise Strength', ...
+        'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
+    zlabel(ax, 'QBER (%)', ...
+        'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
+    title(ax, {'BB84 Protocol - Depolarising Channel - QBER Surface', ...
+               '(500 qubits, 20 trials per point, Gaussian smoothed)'}, ...
+        'FontName', FONT, 'FontSize', SZ_TITLE, 'FontWeight', 'bold');
+    set(ax, 'FontName', FONT, 'FontSize', SZ_TICK);
+    grid(ax, 'on'); ax.GridAlpha = 0.3;
+    view(ax, [-45 30]);
+
+    out_C = fullfile(fileparts(bb84_csv), 'exp5_bb84_surface_qber_v3_approach_C.png');
+    exportgraphics(fig_bb84_C, out_C, 'Resolution', 300);
+    fprintf('Saved: %s\n', out_C);
 end
 
 % =========================================================================
@@ -153,6 +211,11 @@ if ~isfile(b92_csv)
 else
     T_b92 = readtable(b92_csv);
     Z_b92 = reshape(T_b92.qber_mean, 41, 31)' * 100;   % 31x41, percent
+    Z_b92 = min(Z_b92, ZLIM_B92(2));    % clamp to zlim ceiling to prevent face-clipping artefacts
+    [kx, ky] = meshgrid(-2:2, -2:2);
+    gkernel  = exp(-(kx.^2 + ky.^2) / 2);
+    gkernel  = gkernel / sum(gkernel(:));
+    Z_b92_smooth = min(conv2(Z_b92, gkernel, 'same'), ZLIM_B92(2));
 
     % -- B92 Approach A: transparent threshold plane ----------------------
     fig_b92_A = figure('Position', [100 100 1200 750], 'Color', 'white');
@@ -166,6 +229,7 @@ else
     cb.Label.FontSize = SZ_LABEL;
     zlim(ax, ZLIM_B92);
     clim(ax, ZLIM_B92);
+    cb.Ticks = linspace(ZLIM_B92(1), ZLIM_B92(2), 5);
     hold(ax, 'on');
 
     Z_plane = THRESH_B92 * ones(size(Z_b92));
@@ -218,12 +282,15 @@ else
     cb.Label.FontSize = SZ_LABEL;
     zlim(ax, ZLIM_B92);
     clim(ax, ZLIM_B92);
+    cb.Ticks = linspace(ZLIM_B92(1), ZLIM_B92(2), 5);
     hold(ax, 'on');
 
     % Dashed perimeter at threshold height
-    plot3(ax, [0 0.30 0.30 0 0], [0 0 0.15 0.15 0], ...
+    h_thresh = plot3(ax, [0 0.30 0.30 0 0], [0 0 0.15 0.15 0], ...
         repmat(THRESH_B92, 1, 5), ...
         '--', 'Color', [C_THRESH 0.7], 'LineWidth', 1.5);
+    legend(ax, h_thresh, sprintf('Security Threshold (%.1f%%)', THRESH_B92), ...
+        'FontName', FONT, 'FontSize', SZ_LEGEND, 'Box', 'on', 'BackgroundAlpha', 0.8);
 
     xlabel(ax, 'Eve Interception Rate', ...
         'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
@@ -241,4 +308,52 @@ else
     out_B = fullfile(fileparts(b92_csv), 'exp6_b92_surface_qber_v3_approach_B.png');
     exportgraphics(fig_b92_B, out_B, 'Resolution', 300);
     fprintf('Saved: %s\n', out_B);
+
+    % -- B92 Approach C: bicolour split colormap + Gaussian smoothing ------
+    fig_b92_C = figure('Position', [100 100 1200 750], 'Color', 'white');
+    ax = axes(fig_b92_C);
+
+    surf(ax, Eve_b92, Noise_b92, Z_b92_smooth, 'EdgeColor', 'none');
+
+    n_below = 128;
+    n_above = 128;
+    cmap_below = [linspace(1.00, 1.00, n_below)', ...
+                  linspace(0.95, 0.58, n_below)', ...
+                  linspace(0.80, 0.00, n_below)'];
+    cmap_above = [linspace(1.00, 1.00, n_above)', ...
+                  linspace(0.60, 0.00, n_above)', ...
+                  linspace(0.60, 0.00, n_above)'];
+    colormap(ax, [cmap_below; cmap_above]);
+
+    cb = colorbar(ax);
+    cb.Label.String   = 'QBER (%)';
+    cb.Label.FontName = FONT;
+    cb.Label.FontSize = SZ_LABEL;
+    zlim(ax, ZLIM_B92);
+    clim(ax, ZLIM_B92);
+    cb.Ticks = linspace(ZLIM_B92(1), ZLIM_B92(2), 5);
+    hold(ax, 'on');
+
+    h_thresh = plot3(ax, [0 0.30 0.30 0 0], [0 0 0.15 0.15 0], ...
+        repmat(THRESH_B92, 1, 5), ...
+        '--', 'Color', [C_THRESH 0.7], 'LineWidth', 1.5);
+    legend(ax, h_thresh, sprintf('Security Threshold (%.1f%%)', THRESH_B92), ...
+        'FontName', FONT, 'FontSize', SZ_LEGEND, 'Box', 'on', 'BackgroundAlpha', 0.8);
+
+    xlabel(ax, 'Eve Interception Rate', ...
+        'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
+    ylabel(ax, 'Noise Strength', ...
+        'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
+    zlabel(ax, 'QBER (%)', ...
+        'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
+    title(ax, {'B92 Protocol - Depolarising Channel - QBER Surface', ...
+               '(500 qubits, 20 trials per point, Gaussian smoothed)'}, ...
+        'FontName', FONT, 'FontSize', SZ_TITLE, 'FontWeight', 'bold');
+    set(ax, 'FontName', FONT, 'FontSize', SZ_TICK);
+    grid(ax, 'on'); ax.GridAlpha = 0.3;
+    view(ax, [-45 30]);
+
+    out_C = fullfile(fileparts(b92_csv), 'exp6_b92_surface_qber_v3_approach_C.png');
+    exportgraphics(fig_b92_C, out_C, 'Resolution', 300);
+    fprintf('Saved: %s\n', out_C);
 end
