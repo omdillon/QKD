@@ -1,13 +1,13 @@
-% multivariable_surface_plots_v2.m
-% Experiments 5 & 6 (v.2): BB84 and B92 QBER surface plots.
-% Uses restricted parameter ranges and finer grids (31x41) so that the
-% security threshold falls at the midpoint of the z-axis.
+% multivariable_surface_plots_v3.m
+% Experiments 5 & 6 (v.3): BB84 and B92 QBER surface plots.
+% Noise range extended so QBER exceeds the security threshold on the noise axis.
+% QBER displayed as percentage (0-100%).
 %   Approach A — transparent flat threshold plane overlaid on the surface
 %   Approach B — bicolour split colormap (blue/orange below, red above threshold)
 %
-% Requires v.2 CSVs generated from:
-%   configs/exp5_bb84_surface_v2.yaml  (noise 0-0.14, eve 0-0.60, 31x41 grid)
-%   configs/exp6_b92_surface_v2.yaml   (noise 0-0.06, eve 0-0.30, 31x41 grid)
+% Requires v.3 CSVs generated from:
+%   configs/exp5_bb84_surface_v3.yaml  (noise 0-0.30, eve 0-0.60, 31x41 grid)
+%   configs/exp6_b92_surface_v3.yaml   (noise 0-0.15, eve 0-0.30, 31x41 grid)
 
 clear; clc; close all;
 
@@ -32,21 +32,21 @@ ZLIM_BB84 = [0, 2 * THRESH_BB84];   % [0, 22]
 ZLIM_B92  = [0, 2 * THRESH_B92];    % [0, 13]
 
 % -------------------------------------------------------------------------
-% Data paths (v.2 results) change them to reflect v.2
+% Data paths (v.3 results)
 % -------------------------------------------------------------------------
 bb84_csv = 'C:\Users\dillo\OneDrive\Documents\NCL\Year 3\QKD\QKDSimulator\results\sim runs v.5 - final experiments\exp5_bb84_surface_v2\bb84_surface_qber.csv';
 b92_csv  = 'C:\Users\dillo\OneDrive\Documents\NCL\Year 3\QKD\QKDSimulator\results\sim runs v.5 - final experiments\exp6_b92_surface_v2\b92_surface_qber.csv';
 
 % =========================================================================
-% BB84  (Experiment 5 v.2)
-% Grid: 31 noise steps (0-0.14) x 41 eve steps (0-0.60)
+% BB84  (Experiment 5 v.3)
+% Grid: 31 noise steps (0-0.30) x 41 eve steps (0-0.60)
 % =========================================================================
-noise_vals_bb84 = linspace(0, 0.14, 31);
+noise_vals_bb84 = linspace(0, 0.30, 31);
 eve_vals_bb84   = linspace(0, 0.60, 41);
 [Eve_bb84, Noise_bb84] = meshgrid(eve_vals_bb84, noise_vals_bb84);   % 31x41
 
 if ~isfile(bb84_csv)
-    warning('BB84 v.2 CSV not found: %s\nRun exp5_bb84_surface_v2.yaml first.', bb84_csv);
+    warning('BB84 v.3 CSV not found: %s\nRun exp5_bb84_surface_v3.yaml first.', bb84_csv);
 else
     T_bb84 = readtable(bb84_csv);
     Z_bb84 = reshape(T_bb84.qber_mean, 41, 31)' * 100;   % 31x41, percent
@@ -86,7 +86,7 @@ else
     grid(ax, 'on'); ax.GridAlpha = 0.3;
     view(ax, [-45 30]);
 
-    out_A = fullfile(fileparts(bb84_csv), 'exp5_bb84_surface_qber_v2_approach_A.png');
+    out_A = fullfile(fileparts(bb84_csv), 'exp5_bb84_surface_qber_v3_approach_A.png');
     exportgraphics(fig_bb84_A, out_A, 'Resolution', 300);
     fprintf('Saved: %s\n', out_A);
 
@@ -118,7 +118,7 @@ else
     hold(ax, 'on');
 
     % Dashed perimeter at threshold height
-    plot3(ax, [0 0.60 0.60 0 0], [0 0 0.14 0.14 0], ...
+    plot3(ax, [0 0.60 0.60 0 0], [0 0 0.30 0.30 0], ...
         repmat(THRESH_BB84, 1, 5), ...
         '--', 'Color', [C_THRESH 0.7], 'LineWidth', 1.5);
 
@@ -135,21 +135,21 @@ else
     grid(ax, 'on'); ax.GridAlpha = 0.3;
     view(ax, [-45 30]);
 
-    out_B = fullfile(fileparts(bb84_csv), 'exp5_bb84_surface_qber_v2_approach_B.png');
+    out_B = fullfile(fileparts(bb84_csv), 'exp5_bb84_surface_qber_v3_approach_B.png');
     exportgraphics(fig_bb84_B, out_B, 'Resolution', 300);
     fprintf('Saved: %s\n', out_B);
 end
 
 % =========================================================================
-% B92  (Experiment 6 v.2)
-% Grid: 31 noise steps (0-0.06) x 41 eve steps (0-0.30)
+% B92  (Experiment 6 v.3)
+% Grid: 31 noise steps (0-0.15) x 41 eve steps (0-0.30)
 % =========================================================================
-noise_vals_b92 = linspace(0, 0.06, 31);
+noise_vals_b92 = linspace(0, 0.15, 31);
 eve_vals_b92   = linspace(0, 0.30, 41);
 [Eve_b92, Noise_b92] = meshgrid(eve_vals_b92, noise_vals_b92);   % 31x41
 
 if ~isfile(b92_csv)
-    warning('B92 v.2 CSV not found: %s\nRun exp6_b92_surface_v2.yaml first.', b92_csv);
+    warning('B92 v.3 CSV not found: %s\nRun exp6_b92_surface_v3.yaml first.', b92_csv);
 else
     T_b92 = readtable(b92_csv);
     Z_b92 = reshape(T_b92.qber_mean, 41, 31)' * 100;   % 31x41, percent
@@ -189,7 +189,7 @@ else
     grid(ax, 'on'); ax.GridAlpha = 0.3;
     view(ax, [-45 30]);
 
-    out_A = fullfile(fileparts(b92_csv), 'exp6_b92_surface_qber_v2_approach_A.png');
+    out_A = fullfile(fileparts(b92_csv), 'exp6_b92_surface_qber_v3_approach_A.png');
     exportgraphics(fig_b92_A, out_A, 'Resolution', 300);
     fprintf('Saved: %s\n', out_A);
 
@@ -221,7 +221,7 @@ else
     hold(ax, 'on');
 
     % Dashed perimeter at threshold height
-    plot3(ax, [0 0.30 0.30 0 0], [0 0 0.06 0.06 0], ...
+    plot3(ax, [0 0.30 0.30 0 0], [0 0 0.15 0.15 0], ...
         repmat(THRESH_B92, 1, 5), ...
         '--', 'Color', [C_THRESH 0.7], 'LineWidth', 1.5);
 
@@ -238,7 +238,7 @@ else
     grid(ax, 'on'); ax.GridAlpha = 0.3;
     view(ax, [-45 30]);
 
-    out_B = fullfile(fileparts(b92_csv), 'exp6_b92_surface_qber_v2_approach_B.png');
+    out_B = fullfile(fileparts(b92_csv), 'exp6_b92_surface_qber_v3_approach_B.png');
     exportgraphics(fig_b92_B, out_B, 'Resolution', 300);
     fprintf('Saved: %s\n', out_B);
 end

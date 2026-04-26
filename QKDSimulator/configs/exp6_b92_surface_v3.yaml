@@ -1,0 +1,19 @@
+# Exp 6 v.3 — B92 3D Surface (CSV export for MATLAB)
+# Noise range extended to 0.15 so QBER exceeds the 6.5% threshold on the noise axis.
+# Eve range kept at 0.30. zlim in MATLAB remains [0, 13%] (2x threshold).
+# Finer grid: 31 noise x 41 eve x 20 trials = 25,420 protocol runs.
+# Output: results/exp6_b92_surface_v3/b92_surface_qber.csv
+mode: surface_sweep
+protocol: b92
+n_qubits: 500
+n_trials: 20
+noise_type: depolarizing
+noise_min: 0.0
+noise_max: 0.15
+noise_steps: 31
+eve_min: 0.0
+eve_max: 0.30
+eve_steps: 41
+output_dir: ./results/exp6_b92_surface_v3
+save_plots: false
+show_plots: false

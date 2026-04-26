@@ -20,8 +20,8 @@ C_BB84    = [0.055 0.212 0.373];   % #0e365f  (dark navy)
 C_B92     = [1.000 0.584 0.000];   % #ff9500  (orange)
 C_THRESH  = [1.000 0.000 0.000];   % #ff0000  (red)
 
-THRESH_BB84 = 0.11;
-THRESH_B92  = 0.065;
+THRESH_BB84 = 11;    % percent
+THRESH_B92  = 6.5;   % percent
 
 % -------------------------------------------------------------------------
 % Data paths
@@ -43,7 +43,7 @@ if ~isfile(bb84_csv)
     warning('BB84 CSV not found: %s\nSkipping BB84 plots.', bb84_csv);
 else
     T_bb84 = readtable(bb84_csv);
-    Z_bb84 = reshape(T_bb84.qber_mean, 21, 16)';   % 16x21
+    Z_bb84 = reshape(T_bb84.qber_mean, 21, 16)' * 100;   % 16x21, percent
 
     % -- BB84 Approach A: transparent threshold plane ---------------------
     fig_bb84_A = figure('Position', [100 100 1200 750], 'Color', 'white');
@@ -52,10 +52,10 @@ else
     s_data = surf(ax, Eve, Noise, Z_bb84, 'EdgeColor', 'none');
     colormap(ax, parula);
     cb = colorbar(ax);
-    cb.Label.String   = 'QBER';
+    cb.Label.String   = 'QBER (%)';
     cb.Label.FontName = FONT;
     cb.Label.FontSize = SZ_LABEL;
-    clim(ax, [0 1]);
+    clim(ax, [0 100]);
     hold(ax, 'on');
 
     Z_plane = THRESH_BB84 * ones(size(Z_bb84));
@@ -66,13 +66,13 @@ else
         'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
     ylabel(ax, 'Noise Strength', ...
         'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
-    zlabel(ax, 'QBER', ...
+    zlabel(ax, 'QBER (%)', ...
         'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
     title(ax, {'BB84 Protocol - Depolarising Channel - QBER Surface', ...
                '(1000 qubits, 15 trials per point)'}, ...
         'FontName', FONT, 'FontSize', SZ_TITLE, 'FontWeight', 'bold');
     legend(ax, [s_data, s_plane], ...
-        {'QBER Surface', sprintf('Security Threshold (%.0f%%)', THRESH_BB84 * 100)}, ...
+        {'QBER Surface', sprintf('Security Threshold (%.0f%%)', THRESH_BB84)}, ...
         'FontName', FONT, 'FontSize', SZ_LEGEND, 'Box', 'on', ...
         'BackgroundAlpha', 0.8);
     set(ax, 'FontName', FONT, 'FontSize', SZ_TICK);
@@ -90,7 +90,7 @@ else
     surf(ax, Eve, Noise, Z_bb84, 'EdgeColor', 'none');
 
     n_total  = 256;
-    n_below  = round(THRESH_BB84 * n_total);
+    n_below  = round(THRESH_BB84 / 100 * n_total);
     n_above  = n_total - n_below;
     % Blues: dark navy -> light blue  (below threshold, matching BB84 colour)
     cmap_below = [linspace(0.05, 0.53, n_below)', ...
@@ -103,10 +103,10 @@ else
     colormap(ax, [cmap_below; cmap_above]);
 
     cb = colorbar(ax);
-    cb.Label.String   = 'QBER';
+    cb.Label.String   = 'QBER (%)';
     cb.Label.FontName = FONT;
     cb.Label.FontSize = SZ_LABEL;
-    clim(ax, [0 1]);
+    clim(ax, [0 100]);
     hold(ax, 'on');
 
     % Dashed perimeter line at threshold height to mark the boundary
@@ -119,7 +119,7 @@ else
         'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
     ylabel(ax, 'Noise Strength', ...
         'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
-    zlabel(ax, 'QBER', ...
+    zlabel(ax, 'QBER (%)', ...
         'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
     title(ax, {'BB84 Protocol - Depolarising Channel - QBER Surface', ...
                '(1000 qubits, 15 trials per point)'}, ...
@@ -140,7 +140,7 @@ if ~isfile(b92_csv)
     warning('B92 CSV not found: %s\nRun exp6_b92_surface.yaml first, then re-run this script.', b92_csv);
 else
     T_b92 = readtable(b92_csv);
-    Z_b92 = reshape(T_b92.qber_mean, 21, 16)';   % 16x21
+    Z_b92 = reshape(T_b92.qber_mean, 21, 16)' * 100;   % 16x21, percent
 
     % -- B92 Approach A: transparent threshold plane ----------------------
     fig_b92_A = figure('Position', [100 100 1200 750], 'Color', 'white');
@@ -149,10 +149,10 @@ else
     s_data = surf(ax, Eve, Noise, Z_b92, 'EdgeColor', 'none');
     colormap(ax, parula);
     cb = colorbar(ax);
-    cb.Label.String   = 'QBER';
+    cb.Label.String   = 'QBER (%)';
     cb.Label.FontName = FONT;
     cb.Label.FontSize = SZ_LABEL;
-    clim(ax, [0 1]);
+    clim(ax, [0 100]);
     hold(ax, 'on');
 
     Z_plane = THRESH_B92 * ones(size(Z_b92));
@@ -163,13 +163,13 @@ else
         'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
     ylabel(ax, 'Noise Strength', ...
         'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
-    zlabel(ax, 'QBER', ...
+    zlabel(ax, 'QBER (%)', ...
         'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
     title(ax, {'B92 Protocol - Depolarising Channel - QBER Surface', ...
                '(1000 qubits, 15 trials per point)'}, ...
         'FontName', FONT, 'FontSize', SZ_TITLE, 'FontWeight', 'bold');
     legend(ax, [s_data, s_plane], ...
-        {'QBER Surface', sprintf('Security Threshold (%.1f%%)', THRESH_B92 * 100)}, ...
+        {'QBER Surface', sprintf('Security Threshold (%.1f%%)', THRESH_B92)}, ...
         'FontName', FONT, 'FontSize', SZ_LEGEND, 'Box', 'on', ...
         'BackgroundAlpha', 0.8);
     set(ax, 'FontName', FONT, 'FontSize', SZ_TICK);
@@ -187,7 +187,7 @@ else
     surf(ax, Eve, Noise, Z_b92, 'EdgeColor', 'none');
 
     n_total   = 256;
-    n_below   = round(THRESH_B92 * n_total);
+    n_below   = round(THRESH_B92 / 100 * n_total);
     n_above   = n_total - n_below;
     % Oranges: light cream -> deep orange  (below threshold, matching B92 colour)
     cmap_below = [linspace(1.00, 1.00, n_below)', ...
@@ -200,10 +200,10 @@ else
     colormap(ax, [cmap_below; cmap_above]);
 
     cb = colorbar(ax);
-    cb.Label.String   = 'QBER';
+    cb.Label.String   = 'QBER (%)';
     cb.Label.FontName = FONT;
     cb.Label.FontSize = SZ_LABEL;
-    clim(ax, [0 1]);
+    clim(ax, [0 100]);
     hold(ax, 'on');
 
     px = [0 1 1 0 0];
@@ -215,7 +215,7 @@ else
         'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
     ylabel(ax, 'Noise Strength', ...
         'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
-    zlabel(ax, 'QBER', ...
+    zlabel(ax, 'QBER (%)', ...
         'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
     title(ax, {'B92 Protocol - Depolarising Channel - QBER Surface', ...
                '(1000 qubits, 15 trials per point)'}, ...

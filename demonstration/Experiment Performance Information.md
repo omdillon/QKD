@@ -65,7 +65,12 @@ I redeveloped the processing logic to enable multicore processing for the v.2 sy
     * Trial 1 duration (SHEILA): 16:47, original config parameters, completed successfully, plotted in MATLAB
   * V.2:
 
-    * Trial 1 duration (big PC): 14:40, increased parameter density to improve the voracity of the 3D surface plots
+    * Trial 1 duration (big PC): 14:40, increased parameter density to improve the voracity of the 3D surface plots, overall much more presentable but the QBER threshold is not exceeded for noise strength axis
+  * V.3:
+
+    * Trial 1 duration (big PC): , parameters adapted in this final version to optimise the plots.
+
+
 
 
 
@@ -82,7 +87,10 @@ I redeveloped the processing logic to enable multicore processing for the v.2 sy
     * Trial 1 duration (SHEILA): 16:27, original config parameters, completed successfully, plotted in MATLAB
   * V.2:
 
-    * Trial 1 duration (big PC): 11:28, increased parameter density to improve the voracity of the 3D surface plots
+    * Trial 1 duration (big PC): 11:28, increased parameter density to improve the voracity of the 3D surface plots, overall much more presentable but the QBER threshold is not exceeded for noise strength axis
+  * V.3:
+
+    * Trial 1 duration (big PC): , parameters adapted in this final version to optimise the plots.
 
 
 

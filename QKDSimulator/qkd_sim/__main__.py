@@ -49,6 +49,8 @@ EXPERIMENT_PLOTTERS = {
     'exp6_b92_surface':       ('surface_sweep',       '__csv__'),
     'exp5_bb84_surface_v2':   ('surface_sweep',       '__csv__'),
     'exp6_b92_surface_v2':    ('surface_sweep',       '__csv__'),
+    'exp5_bb84_surface_v3':   ('surface_sweep',       '__csv__'),
+    'exp6_b92_surface_v3':    ('surface_sweep',       '__csv__'),
 }
 
 
