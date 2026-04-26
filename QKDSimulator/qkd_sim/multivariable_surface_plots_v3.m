@@ -34,8 +34,8 @@ ZLIM_B92  = [0, 2 * THRESH_B92];    % [0, 13]
 % -------------------------------------------------------------------------
 % Data paths (v.3 results)
 % -------------------------------------------------------------------------
-bb84_csv = 'C:\Users\dillo\OneDrive\Documents\NCL\Year 3\QKD\QKDSimulator\results\sim runs v.5 - final experiments\exp5_bb84_surface_v2\bb84_surface_qber.csv';
-b92_csv  = 'C:\Users\dillo\OneDrive\Documents\NCL\Year 3\QKD\QKDSimulator\results\sim runs v.5 - final experiments\exp6_b92_surface_v2\b92_surface_qber.csv';
+bb84_csv = 'C:\Users\dillo\OneDrive\Documents\NCL\Year 3\QKD\QKDSimulator\results\sim runs v.5 - final experiments\exp5_bb84_surface_v3\bb84_surface_qber.csv';
+b92_csv  = 'C:\Users\dillo\OneDrive\Documents\NCL\Year 3\QKD\QKDSimulator\results\sim runs v.5 - final experiments\exp6_b92_surface_v3\b92_surface_qber.csv';
 
 % =========================================================================
 % BB84  (Experiment 5 v.3)
