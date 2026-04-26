@@ -5,6 +5,8 @@ Runs protocols across noise strength or Eve rate ranges and
 aggregates QBER / mutual information statistics for plotting.
 """
 
+import os
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 from typing import List, Optional, Dict, Any, Type
 import numpy as np
@@ -47,6 +49,18 @@ class SurfaceBenchmarkData:
     n_trials: int
     n_qubits: int
     noise_type: str
+
+
+def _surface_cell_worker(args):
+    """Run n_trials at a single (noise_strength, eve_rate) cell. Module-level
+    so it is picklable on Windows (spawn start method)."""
+    protocol_class, noise_type, strength, rate, n_trials, n_qubits = args
+    backend = create_backend(noise_type, strength)
+    eve = EveInterceptor(rate) if rate > 0 else None
+    return [
+        protocol_class(n_qubits=n_qubits, backend=backend, eve=eve).run().qber
+        for _ in range(n_trials)
+    ]
 
 
 class BenchmarkRunner:
@@ -235,16 +249,17 @@ class BenchmarkRunner:
         n_s, n_e = len(strengths), len(eve_rates)
         qber_results = np.zeros((n_s, n_e, n_trials))
 
+        tasks = [
+            (protocol_class, noise_type, float(s), float(e), n_trials, n_qubits)
+            for s in strengths for e in eve_rates
+        ]
         desc = f"{protocol_class.protocol_name()} surface sweep"
-        for i, strength in enumerate(tqdm(strengths, desc=desc, unit="noise")):
-            backend = create_backend(noise_type, strength)
-            for j, rate in enumerate(eve_rates):
-                eve = EveInterceptor(rate) if rate > 0 else None
-                for k in range(n_trials):
-                    result = protocol_class(
-                        n_qubits=n_qubits, backend=backend, eve=eve,
-                    ).run()
-                    qber_results[i, j, k] = result.qber
+        with ProcessPoolExecutor(max_workers=os.cpu_count()) as pool:
+            flat = list(tqdm(pool.map(_surface_cell_worker, tasks),
+                             total=len(tasks), desc=desc, unit="cell"))
+        for idx, qbers in enumerate(flat):
+            i, j = divmod(idx, n_e)
+            qber_results[i, j, :] = qbers
 
         return SurfaceBenchmarkData(
             protocol_name=protocol_class.protocol_name(),

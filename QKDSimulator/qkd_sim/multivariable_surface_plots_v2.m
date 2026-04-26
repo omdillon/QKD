@@ -32,7 +32,7 @@ ZLIM_BB84 = [0, 2 * THRESH_BB84];   % [0, 0.22]
 ZLIM_B92  = [0, 2 * THRESH_B92];    % [0, 0.13]
 
 % -------------------------------------------------------------------------
-% Data paths (v.2 results)
+% Data paths (v.2 results) change them to reflect v.2
 % -------------------------------------------------------------------------
 bb84_csv = 'C:\Users\dillo\OneDrive\Documents\NCL\Year 3\QKD\QKDSimulator\results\sim runs v.5 - final experiments\exp5_bb84_surface_v2\bb84_surface_qber.csv';
 b92_csv  = 'C:\Users\dillo\OneDrive\Documents\NCL\Year 3\QKD\QKDSimulator\results\sim runs v.5 - final experiments\exp6_b92_surface_v2\b92_surface_qber.csv';
