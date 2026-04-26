@@ -43,7 +43,7 @@ foreach ($cfg in $configs) {
 
 
 
-----------          v.3 plots         ----------
+----------          system v.5 plots         ----------
 
 
 6 new configs in configs/:
@@ -66,3 +66,7 @@ python -m qkd_sim configs/exp5_bb84_surface_v2.yaml
 python -m qkd_sim configs/exp6_b92_surface_v2.yaml
 
 
+------------- experiments 5&6 v3    ------------------
+
+python -m qkd_sim configs/exp5_bb84_surface_v3.yaml
+python -m qkd_sim configs/exp6_b92_surface_v3.yaml
