@@ -62,5 +62,7 @@ exp6_b92_surface.yaml	python -m qkd_sim configs/exp6_b92_surface.yaml
 The CSVs for Exps 5 & 6 use long format (noise_strength, eve_rate, qber_mean)
 MATLAB import: T = readtable('bb84_surface_qber.csv'); Z = reshape(T.qber_mean, 21, 16)';
 
+python -m qkd_sim configs/exp5_bb84_surface_v2.yaml
+python -m qkd_sim configs/exp6_b92_surface_v2.yaml
 
 
