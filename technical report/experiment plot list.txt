@@ -59,3 +59,12 @@ I need you to build a feature to enable me to export a correctly formatted and n
 
 
 I also want to optimise the plotting mechanics to reduce the time to generate experimental data. I only need to perform the experiments config runs for the data used to generate these plots, hence plan a change that will enable me run a config file for experiment 1-6 across 6 new config files only. Much of the logic to complete these experiments already exists, I just need you to streamline it for me. I also need you to ensure the resultant plot .png files are of dpi = 300, and are appropriately named. Plan these system changes, and breakdown what needs to change for me.
+
+
+
+
+
+
+
+
+
