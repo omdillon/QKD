@@ -56,6 +56,20 @@ class QKDResult:
         return self.key_rate * (1.0 - h_e)
 
     @property
+    def eve_information(self) -> float:
+        """Eve's accessible information I(A;E) per transmitted qubit."""
+        if self.protocol_name == "BB84":
+            return self.key_rate * self._binary_entropy(self.qber)
+        elif self.protocol_name == "B92":
+            denominator = 1.0 - (1.0 / np.sqrt(2.0))
+            return self.key_rate * self._binary_entropy(self.qber / denominator)
+        elif self.protocol_name == "E91":
+            s_val = getattr(self, 'abs_s', 0.0)
+            penalty_term = (1.0 + np.sqrt(max(0.0, (s_val / 2.0) ** 2 - 1.0))) / 2.0
+            return self.key_rate * self._binary_entropy(penalty_term)
+        return 0.0
+
+    @property
     def secure_key_rate(self) -> float:
         """Devetak-Winter secure key rate: K = I(A;B) - I(A;E)."""
         if self.sifted_length == 0:

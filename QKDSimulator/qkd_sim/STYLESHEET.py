@@ -52,8 +52,8 @@ class PlotStyle:
     # Protocol colours (multi-protocol comparison)
     protocol_colours: Dict[str, str] = field(default_factory=lambda: {
         'BB84': '#0e365f',
-        'B92':  '#ff9500',
-        'E91':  '#22a043',
+        'B92':  '#22a043',
+        'E91':  '#ff9500',
     })
     protocol_markers: Dict[str, str] = field(default_factory=lambda: {
         'BB84': 's',

@@ -49,6 +49,9 @@ class SurfaceBenchmarkData:
     n_trials: int
     n_qubits: int
     noise_type: str
+    iab_mean: Optional[np.ndarray] = None   # shape (S, E) — I(A;B) per qubit
+    iae_mean: Optional[np.ndarray] = None   # shape (S, E) — I(A;E) per qubit
+    skr_mean: Optional[np.ndarray] = None   # shape (S, E) — secure key rate per qubit
 
 
 def _surface_cell_worker(args):
@@ -61,6 +64,18 @@ def _surface_cell_worker(args):
         protocol_class(n_qubits=n_qubits, backend=backend, eve=eve).run().qber
         for _ in range(n_trials)
     ]
+
+
+def _surface_cell_worker_v4(args):
+    """Run n_trials at a single cell, collecting QBER, I(A;B), I(A;E), and SKR."""
+    protocol_class, noise_type, strength, rate, n_trials, n_qubits = args
+    backend = create_backend(noise_type, strength)
+    eve = EveInterceptor(rate) if rate > 0 else None
+    results = []
+    for _ in range(n_trials):
+        r = protocol_class(n_qubits=n_qubits, backend=backend, eve=eve).run()
+        results.append((r.qber, r.mutual_information, r.eve_information, r.secure_key_rate))
+    return results
 
 
 class BenchmarkRunner:
@@ -270,4 +285,54 @@ class BenchmarkRunner:
             n_trials=n_trials,
             n_qubits=n_qubits,
             noise_type=noise_type,
+        )
+
+    def run_surface_sweep_v4(
+        self,
+        protocol_class: Type[QKDProtocol],
+        noise_type: str,
+        strengths: np.ndarray,
+        eve_rates: np.ndarray,
+        n_trials: int = 30,
+        n_qubits: int = 100,
+    ) -> SurfaceBenchmarkData:
+        """2-D sweep collecting QBER, I(A;B), I(A;E), and SKR at each cell."""
+        strengths = np.asarray(strengths)
+        eve_rates = np.asarray(eve_rates)
+        n_s, n_e = len(strengths), len(eve_rates)
+
+        qber_results = np.zeros((n_s, n_e, n_trials))
+        iab_results  = np.zeros((n_s, n_e, n_trials))
+        iae_results  = np.zeros((n_s, n_e, n_trials))
+        skr_results  = np.zeros((n_s, n_e, n_trials))
+
+        tasks = [
+            (protocol_class, noise_type, float(s), float(e), n_trials, n_qubits)
+            for s in strengths for e in eve_rates
+        ]
+        desc = f"{protocol_class.protocol_name()} surface sweep v4"
+        with ProcessPoolExecutor(max_workers=os.cpu_count()) as pool:
+            flat = list(tqdm(pool.map(_surface_cell_worker_v4, tasks),
+                             total=len(tasks), desc=desc, unit="cell"))
+
+        for idx, cell in enumerate(flat):
+            i, j = divmod(idx, n_e)
+            for k, (q, iab, iae, skr) in enumerate(cell):
+                qber_results[i, j, k] = q
+                iab_results[i, j, k]  = iab
+                iae_results[i, j, k]  = iae
+                skr_results[i, j, k]  = skr
+
+        return SurfaceBenchmarkData(
+            protocol_name=protocol_class.protocol_name(),
+            noise_strengths=strengths,
+            eve_rates=eve_rates,
+            qber_mean=np.mean(qber_results, axis=2),
+            qber_std=np.std(qber_results, axis=2),
+            n_trials=n_trials,
+            n_qubits=n_qubits,
+            noise_type=noise_type,
+            iab_mean=np.mean(iab_results, axis=2),
+            iae_mean=np.mean(iae_results, axis=2),
+            skr_mean=np.mean(skr_results, axis=2),
         )

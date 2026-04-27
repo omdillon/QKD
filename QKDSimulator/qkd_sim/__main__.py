@@ -51,6 +51,8 @@ EXPERIMENT_PLOTTERS = {
     'exp6_b92_surface_v2':    ('surface_sweep',       '__csv__'),
     'exp5_bb84_surface_v3':   ('surface_sweep',       '__csv__'),
     'exp6_b92_surface_v3':    ('surface_sweep',       '__csv__'),
+    'exp5_bb84_surface_v4':   ('surface_sweep',       '__csv_v4__'),
+    'exp6_b92_surface_v4':    ('surface_sweep',       '__csv_v4__'),
 }
 
 
@@ -198,6 +200,45 @@ def run_eve_comparison(config, plot_method_name):
     method(data_dict, output_dir=_output_dir(config), show=config.show_plots)
 
 
+def run_surface_sweep_v4(config):
+    """2-D noise × Eve sweep collecting QBER, I(A;B), I(A;E), and SKR; writes v4 CSV."""
+    import csv
+
+    protocol_class = PROTOCOLS[config.protocol]
+    strengths = np.linspace(config.noise_min, config.noise_max, config.noise_steps)
+    eve_rates = np.linspace(config.eve_min, config.eve_max, config.eve_steps)
+
+    runner = BenchmarkRunner()
+    surface = runner.run_surface_sweep_v4(
+        protocol_class=protocol_class,
+        noise_type=config.noise_type,
+        strengths=strengths,
+        eve_rates=eve_rates,
+        n_trials=config.n_trials,
+        n_qubits=config.n_qubits,
+    )
+
+    out_dir = Path(config.output_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    csv_path = out_dir / f"{config.protocol.lower()}_surface_v4.csv"
+
+    with open(csv_path, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['noise_strength', 'eve_rate', 'qber_mean',
+                         'iab_mean', 'iae_mean', 'skr_mean'])
+        for i, noise in enumerate(surface.noise_strengths):
+            for j, eve in enumerate(surface.eve_rates):
+                writer.writerow([
+                    f'{noise:.4f}', f'{eve:.4f}',
+                    f'{surface.qber_mean[i, j]:.6f}',
+                    f'{surface.iab_mean[i, j]:.6f}',
+                    f'{surface.iae_mean[i, j]:.6f}',
+                    f'{surface.skr_mean[i, j]:.6f}',
+                ])
+
+    print(f"  CSV saved: {csv_path}")
+
+
 def run_surface_sweep(config):
     """Run a 2-D noise × Eve sweep for a single protocol and write a CSV for MATLAB."""
     import csv
@@ -269,7 +310,10 @@ def main():
         elif config.mode == 'eve_comparison':
             run_eve_comparison(config, plot_method_name)
         elif config.mode == 'surface_sweep':
-            run_surface_sweep(config)
+            if plot_method_name == '__csv_v4__':
+                run_surface_sweep_v4(config)
+            else:
+                run_surface_sweep(config)
         else:
             raise ValueError(f"Unhandled mode: {config.mode}")
 
