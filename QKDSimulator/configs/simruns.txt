@@ -76,3 +76,17 @@ test commit
 ------------- experiments 5&6 v3    ------------------
 python -m qkd_sim configs/exp5_bb84_surface_v4.yaml
 python -m qkd_sim configs/exp6_b92_surface_v4.yaml
+
+
+
+----------------          final experiment run to execute             ------------
+
+python -m qkd_sim configs/exp1_baseline.yaml
+python -m qkd_sim configs/exp2_noise_resilience.yaml
+python -m qkd_sim configs/exp3_eve_vulnerability.yaml
+python -m qkd_sim configs/exp4_e91_mechanics.yaml
+python -m qkd_sim configs/exp5_bb84_surface_v4.yaml
+python -m qkd_sim configs/exp6_b92_surface_v4.yaml
+
+for package install:
+pip install -r requirements.txt

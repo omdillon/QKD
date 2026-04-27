@@ -12,6 +12,6 @@ noise_steps: 31
 eve_min: 0.0
 eve_max: 0.60
 eve_steps: 41
-output_dir: ./results/exp5_bb84_surface_v4
+output_dir: ./results/sim runs v.6 - FINAL/exp5_bb84_surface_v4
 save_plots: false
 show_plots: false

@@ -6,6 +6,7 @@ titles, filenames, and figure set for its scenario. Visual constants come
 from STYLESHEET.py so colours/fonts/sizes remain consistent across plots.
 """
 
+import re
 from pathlib import Path
 from typing import Dict, Optional
 
@@ -853,7 +854,10 @@ class QKDPlotter:
                   show: bool) -> None:
         """Save and close (or show) a figure."""
         if output_dir is not None:
-            path = Path(output_dir) / filename
+            dir_stem = Path(output_dir).name
+            m = re.match(r'(exp\d+)', dir_stem)
+            prefix = m.group(1) + '_' if m else ''
+            path = Path(output_dir) / (prefix + filename)
             path.parent.mkdir(parents=True, exist_ok=True)
             fig.savefig(path, dpi=STYLE.save_dpi, bbox_inches=STYLE.save_bbox,
                         facecolor=STYLE.save_facecolor, edgecolor=STYLE.save_edgecolor)

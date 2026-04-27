@@ -1,6 +1,6 @@
-qiskit
-qiskit-aer
-numpy
-matplotlib
-tqdm
-pyyaml
+qiskit==2.2.1
+qiskit-aer==0.17.2
+numpy==2.2.2
+matplotlib==3.10.0
+tqdm==4.67.1
+pyyaml==6.0.3

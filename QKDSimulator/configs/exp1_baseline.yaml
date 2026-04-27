@@ -13,6 +13,6 @@ noise_min: 0.0
 noise_max: 0.0
 noise_steps: 1
 e91_channel_topology: both
-output_dir: ./results/exp1_baseline
+output_dir: ./results/sim runs v.6 - FINAL/exp1_baseline
 save_plots: true
 show_plots: false

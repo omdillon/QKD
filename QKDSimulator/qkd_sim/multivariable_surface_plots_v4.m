@@ -53,8 +53,8 @@ BORDER_PX = 42;
 % -------------------------------------------------------------------------
 % Data paths (v.4 results)
 % -------------------------------------------------------------------------
-bb84_csv = 'C:\Users\dillo\OneDrive\Documents\NCL\Year 3\QKD\QKDSimulator\results\sim runs v.5 - complete experiments\exp5_bb84_surface_v4\bb84_surface_v4.csv';
-b92_csv  = 'C:\Users\dillo\OneDrive\Documents\NCL\Year 3\QKD\QKDSimulator\results\sim runs v.5 - complete experiments\exp6_b92_surface_v4\b92_surface_v4.csv';
+bb84_csv = 'C:\Users\dillo\OneDrive\Documents\NCL\Year 3\QKD\QKDSimulator\results\sim runs v.6 - FINAL\exp5_bb84_surface_v4\bb84_surface_v4.csv';
+b92_csv  = 'C:\Users\dillo\OneDrive\Documents\NCL\Year 3\QKD\QKDSimulator\results\sim runs v.6 - FINAL\exp6_b92_surface_v4\b92_surface_v4.csv';
 
 % =========================================================================
 % BB84  (Experiment 5 v.4)
