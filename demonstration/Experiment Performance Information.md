@@ -18,7 +18,7 @@ reference this doc in the creation of the demonstration slide pack, link each pl
   * V.2:
 
     * Updated colours for protocols for consistency, BB84 = Blue, B92 = Green, E91 = Yellow
-    * Trial 1 duration (big PC):
+    * Trial 1 duration (big PC): 00:52, completed successfully
 
 
 
@@ -32,7 +32,7 @@ reference this doc in the creation of the demonstration slide pack, link each pl
   * V.2:
 
     * Updated colours for protocols for consistency, BB84 = Blue, B92 = Green, E91 = Yellow
-    * Trial 1 duration (big PC):
+    * Trial 1 duration (big PC): 15:47, completed successfully
 
 
 
@@ -50,9 +50,7 @@ reference this doc in the creation of the demonstration slide pack, link each pl
   * V.2:
 
     * Updated colours for protocols for consistency, BB84 = Blue, B92 = Green, E91 = Yellow
-    * Trial 1 duration (big PC):
-
-      * 
+    * Trial 1 duration (big PC): 20:10, completed successfully
 
 
 
@@ -68,9 +66,7 @@ reference this doc in the creation of the demonstration slide pack, link each pl
   * V.2:
 
     * Updated colours for protocols for consistency, BB84 = Blue, B92 = Green, E91 = Yellow
-    * Trial 1 duration (big PC):
-
-      * 
+    * Trial 1 duration (big PC): 07:44,
 
 
 
@@ -103,7 +99,7 @@ I redeveloped the processing logic to enable multicore processing for the v.2 sy
     * Mutual information surfaces: 
 
       * 2 surfaces on the same plot, one for Alice and Bob MI, and one for Alice and Eve MI, surfaces should intercept, and yield the point at which a Secure key cannot be generated, informing the next surface plot of SKR
-    * Trial 1 duration (big PC): 00:00, this generates 3 surfaces: QBER, Mutual Information, SKR, there are gaussian smoothed plots for each plot
+    * Trial 1 duration (big PC): 14:28, this generates 3 surfaces: QBER, Mutual Information, SKR, there are gaussian smoothed plots for each plot
     * 
 
 
@@ -133,6 +129,15 @@ I redeveloped the processing logic to enable multicore processing for the v.2 sy
     * Mutual information surfaces:
 
       * 2 surfaces on the same plot, one for Alice and Bob MI, and one for Alice and Eve MI, surfaces should intercept, and yield the point at which a Secure key cannot be generated, informing the next surface plot of SKR
-    * Trial 1 duration (big PC): 00:00, this generates 3 surfaces: QBER, Mutual Information, SKR, there are gaussian smoothed plots for each plot
-    * 
+    * Trial 1 duration (big PC): 11:50, this generates 3 surfaces: QBER, Mutual Information, SKR, there are gaussian smoothed plots for each plot
+
+
+
+
+
+
+
+
+
+
 

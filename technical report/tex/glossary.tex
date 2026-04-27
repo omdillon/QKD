@@ -1,0 +1,149 @@
+% =============================================================================
+% GLOSSARY ENTRIES
+% =============================================================================
+
+% --- ACRONYMS ----------------------------------------------------------------
+% Usage in text: \gls{qkd}  first use: "Quantum Key Distribution (QKD)"
+% subsequent: "QKD"
+% \glspl{qkd}  plural form
+
+\newacronym{qkd}{QKD}{Quantum Key Distribution}
+\newacronym{bb84}{BB84}{Bennett--Brassard 1984 Protocol}
+\newacronym{b92}{B92}{Bennett 1992 Protocol}
+\newacronym{e91}{E91}{Ekert 1991 Protocol}
+\newacronym{qber}{QBER}{Quantum Bit Error Rate}
+\newacronym{pqc}{PQC}{Post-Quantum Cryptography}
+\newacronym{otp}{OTP}{One-Time Pad}
+\newacronym{prng}{PRNG}{Pseudo-Random Number Generator}
+\newacronym{epe}{EPE}{Entanglement Purification via Eavesdropping}
+
+% --- SYMBOLS (Nomenclature) --------------------------------------------------
+% Usage in text: \gls{sym:qber}  renders the symbol with a hyperlink
+%                \glsdesc{sym:qber} renders just the description
+
+\newglossaryentry{sym:qber}{
+    type    = symbols,
+    name    = {\ensuremath{\mathrm{QBER}}},
+    description = {Quantum Bit Error Rate --- ratio of erroneous bits to total
+                   bits received over the quantum channel},
+    sort    = {QBER}
+}
+
+\newglossaryentry{sym:rsec}{
+    type    = symbols,
+    name    = {\ensuremath{R_{\mathrm{sec}}}},
+    description = {Secret-key generation rate (bits per channel use)},
+    sort    = {Rsec}
+}
+
+\newglossaryentry{sym:theta}{
+    type    = symbols,
+    name    = {\ensuremath{\theta}},
+    description = {Polarisation angle of a photon (radians)},
+    sort    = {theta}
+}
+
+\newglossaryentry{sym:epsilon}{
+    type    = symbols,
+    name    = {\ensuremath{\varepsilon}},
+    description = {Security parameter --- maximum acceptable eavesdropper
+                   information leakage},
+    sort    = {epsilon}
+}
+
+% --- GENERAL GLOSSARY TERMS --------------------------------------------------
+% Usage in text: \gls{entanglement}
+
+\newglossaryentry{entanglement}{
+    name        = {entanglement},
+    description = {A quantum mechanical phenomenon in which two or more particles
+                   share a correlated quantum state, such that measuring one
+                   particle instantaneously determines properties of the other
+                   regardless of the distance separating them}
+}
+
+\newglossaryentry{qubit}{
+    name        = {qubit},
+    description = {The fundamental unit of quantum information; a two-level
+                   quantum system that can exist in a superposition of states
+                   \ensuremath{\ket{0}} and \ensuremath{\ket{1}}}
+}
+
+\newglossaryentry{sifting}{
+    name        = {sifting},
+    description = {The post-transmission step in QKD in which Alice and Bob
+                   publicly compare measurement bases and discard bits where
+                   incompatible bases were used}
+}
+
+\newglossaryentry{reconciliation}{
+    name        = {reconciliation},
+    description = {An error-correction stage in QKD that resolves discrepancies
+                   between Alice's and Bob's sifted keys over an authenticated
+                   classical channel}
+}
+
+\newglossaryentry{amplification}{
+    name        = {privacy amplification},
+    description = {A post-processing step that compresses the reconciled key to
+                   reduce any partial information an eavesdropper may have
+                   obtained, producing a shorter but provably secure final key}
+}
+
+
+% =============================================================================
+% ENTRIES ADDED FOR: Introduction paragraph
+% =============================================================================
+
+% --- New Acronyms ------------------------------------------------------------
+
+\newacronym{rsa}{RSA}{Rivest--Shamir--Adleman}
+% First use in text: "Rivest--Shamir--Adleman (RSA)"
+% Subsequent uses:   "RSA"
+
+\newacronym{ecc}{ECC}{Elliptic Curve Cryptography}
+% First use in text: "Elliptic Curve Cryptography (ECC)"
+% Subsequent uses:   "ECC"
+
+% --- New General Terms -------------------------------------------------------
+
+\newglossaryentry{intfact}{
+    name        = {integer factorisation},
+    description = {The computational problem of decomposing a composite integer
+                   into its prime factors. No classical algorithm is known to
+                   solve this in polynomial time for large integers, forming the
+                   security basis of RSA}
+}
+
+\newglossaryentry{disclog}{
+    name        = {discrete logarithm},
+    description = {The problem of finding the exponent \ensuremath{x} such that
+                   \ensuremath{g^x \equiv h \pmod{p}} for given \ensuremath{g},
+                   \ensuremath{h}, and prime \ensuremath{p}. Believed to be
+                   classically hard; underlies the security of ECC and
+                   Diffie--Hellman key exchange}
+}
+
+\newglossaryentry{shors}{
+    name        = {Shor's algorithm},
+    description = {A quantum algorithm, published by Peter Shor in 1994, that
+                   solves integer factorisation and the discrete logarithm in
+                   polynomial time on a fault-tolerant quantum computer,
+                   breaking RSA and ECC}
+}
+
+\newglossaryentry{itsec}{
+    name        = {information-theoretic security},
+    description = {A security guarantee that holds against an adversary with
+                   unlimited computational power, relying on mathematical
+                   impossibility rather than assumed hardness of a problem.
+                   QKD achieves this via the laws of quantum mechanics}
+}
+
+\newglossaryentry{qea}{
+    name        = {Quantum Economic Advantage},
+    description = {The threshold at which the practical cost of executing a
+                   quantum attack --- accounting for hardware, error correction,
+                   and runtime --- becomes economically feasible for a
+                   sufficiently motivated adversary}
+}
