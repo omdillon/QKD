@@ -8,41 +8,69 @@ reference this doc in the creation of the demonstration slide pack, link each pl
 
 
 
-##### 1\. Baseline Proof: 
+##### 1\. Baseline Proof:
 
 * &#x09;Bar chart of Mutual Info \& QBER for all three protocols on an ideal channel.
 
-  * Trial 1 duration (SHEILA): 01:05, completed successfully
+  * V.1:
+
+    * Trial 1 duration (SHEILA): 01:05, completed successfully
+  * V.2:
+
+    * Updated colours for protocols for consistency, BB84 = Blue, B92 = Green, E91 = Yellow
+    * Trial 1 duration (big PC):
 
 
 
-
-
-##### 2\. Noise Resilience: 
+##### 2\. Noise Resilience:
 
 * &#x09;Noise vs. Secure Key Rate for BB84, B92, and E91, overlaid on the same plot.
 
-  * Trial 1 duration (SHEILA): 20:45, completed successfully
+  * V.1:
+
+    * Trial 1 duration (SHEILA): 20:45, completed successfully
+  * V.2:
+
+    * Updated colours for protocols for consistency, BB84 = Blue, B92 = Green, E91 = Yellow
+    * Trial 1 duration (big PC):
 
 
 
-##### 3\. Eve Vulnerability: 
+
+
+##### 3\. Eve Vulnerability:
 
 * &#x09;Eve Rate vs. QBER for BB84 and B92, overlaid on the same plot, with dynamic QBER security thresholds (where D-W bound,  K = 0), and perpendicular x-line for intercept thresholds in contrasting colours for plot visibility.
 
-  * Trial 1 duration (SHEILA): 15:32, failed due to missaligned logic
-  * Trial 2 duration (SHEILA): 32:30, improved performance, muddled up the plotting code and incorrectly presented the threshold lines
-  * Trial 3 duration (SHEILA): 25:10, completed successfully
+  * V.1:
+
+    * Trial 1 duration (SHEILA): 15:32, failed due to missaligned logic
+    * Trial 2 duration (SHEILA): 32:30, improved performance, muddled up the plotting code and incorrectly presented the threshold lines
+    * Trial 3 duration (SHEILA): 25:10, completed successfully
+  * V.2:
+
+    * Updated colours for protocols for consistency, BB84 = Blue, B92 = Green, E91 = Yellow
+    * Trial 1 duration (big PC):
+
+      * 
 
 
 
 
 
-##### 4\. E91 Entanglement Mechanics (2D Twin-Axis): 
+##### 4\. E91 Entanglement Mechanics (2D Twin-Axis):
 
 * &#x09;Noise vs. S-Parameter \& QBER (Proves E91's unique security mechanism), with current static security thresholds at tsireslon bound S = 2sqrt2, and classical bound S = 2.
 
-  * Trial 1 duration (SHEILA): 10:48, completed successfully
+  * V.1:
+
+    * Trial 1 duration (SHEILA): 10:48, completed successfully
+  * V.2:
+
+    * Updated colours for protocols for consistency, BB84 = Blue, B92 = Green, E91 = Yellow
+    * Trial 1 duration (big PC):
+
+      * 
 
 
 
@@ -69,6 +97,14 @@ I redeveloped the processing logic to enable multicore processing for the v.2 sy
   * V.3:
 
     * Trial 1 duration (big PC): 13:20, parameters adapted in this final version to optimise the plots.
+  * V.4:
+
+    * These plots will also generate 2 new surfaces for mutual information, and secure key rate (SKR).
+    * Mutual information surfaces: 
+
+      * 2 surfaces on the same plot, one for Alice and Bob MI, and one for Alice and Eve MI, surfaces should intercept, and yield the point at which a Secure key cannot be generated, informing the next surface plot of SKR
+    * Trial 1 duration (big PC): 00:00, this generates 3 surfaces: QBER, Mutual Information, SKR, there are gaussian smoothed plots for each plot
+    * 
 
 
 
@@ -78,7 +114,7 @@ I redeveloped the processing logic to enable multicore processing for the v.2 sy
 
 
 
-###### 6\. B92 Noise Strength vs. Eve Rate vs. QBER with the 6.5% threshold plane 
+###### 6\. B92 Noise Strength vs. Eve Rate vs. QBER with the 6.5% threshold plane
 
 * &#x09;Plot data was exported as a .csv file for MATLAB plotting
 
@@ -91,8 +127,12 @@ I redeveloped the processing logic to enable multicore processing for the v.2 sy
   * V.3:
 
     * Trial 1 duration (big PC): 11:14, parameters adapted in this final version to optimise the plots.
+  * V.4:
 
+    * These plots will also generate 2 new surfaces for mutual information, and secure key rate (SKR).
+    * Mutual information surfaces:
 
-
-
+      * 2 surfaces on the same plot, one for Alice and Bob MI, and one for Alice and Eve MI, surfaces should intercept, and yield the point at which a Secure key cannot be generated, informing the next surface plot of SKR
+    * Trial 1 duration (big PC): 00:00, this generates 3 surfaces: QBER, Mutual Information, SKR, there are gaussian smoothed plots for each plot
+    * 
 

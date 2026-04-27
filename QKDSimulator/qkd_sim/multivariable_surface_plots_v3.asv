@@ -57,7 +57,7 @@ else
     Z_bb84 = reshape(T_bb84.qber_mean, 41, 31)' * 100;   % 31x41, percent
     Z_bb84 = min(Z_bb84, ZLIM_BB84(2));   % clamp to zlim ceiling to prevent face-clipping artefacts
 
-    % Gaussian smoothing with edge replication
+    % Gaussian smoothing with edge replication (avoids border fold-down artefact)
     [kx, ky] = meshgrid(-2:2, -2:2);
     gkernel  = exp(-(kx.^2 + ky.^2) / 2);
     gkernel  = gkernel / sum(gkernel(:));
@@ -65,14 +65,14 @@ else
     Z_pad = [repmat(Z_pad(1,:), 2, 1); Z_pad; repmat(Z_pad(end,:), 2, 1)];
     Z_bb84_smooth = min(conv2(Z_pad, gkernel, 'valid'), ZLIM_BB84(2));
 
-    % Gradient colormap: dark blue -> sky blue -> coral -> dark crimson
+    % Gradient colormap: midnight blue -> sky blue -> coral -> dark crimson
     key_colors_bb84 = [0.02, 0.04, 0.25;
                        0.15, 0.65, 1.00;
                        1.00, 0.40, 0.30;
                        0.70, 0.00, 0.00];
     cmap_bb84 = interp1(linspace(0,1,4), key_colors_bb84, linspace(0,1,256));
 
-    % BB84 Standard (gradient + plane, raw data) 
+    % -- BB84 Standard (gradient + plane, raw data) -----------------------
     fig_bb84 = figure('Position', [100 100 1200 750], 'Color', 'white');
     ax = axes(fig_bb84);
     s_data = surf(ax, Eve_bb84, Noise_bb84, Z_bb84, 'EdgeColor', 'none');
@@ -105,7 +105,7 @@ else
     rotate3d(fig_bb84, 'on');
     fprintf('Saved: %s\n', out);
 
-    % BB84 Gaussian (gradient + plane, smoothed)
+    % -- BB84 Gaussian (gradient + plane, smoothed) — exported silently ---
     fig_bb84_g = figure('Position', [100 100 1200 750], 'Color', 'white', 'Visible', 'off');
     ax = axes(fig_bb84_g);
     s_data = surf(ax, Eve_bb84, Noise_bb84, Z_bb84_smooth, 'EdgeColor', 'none');
@@ -169,7 +169,7 @@ else
                       0.70, 0.00, 0.00];
     cmap_b92 = interp1(linspace(0,1,4), key_colors_b92, linspace(0,1,256));
 
-    % B92 Standard (gradient + plane, raw data) 
+    % -- B92 Standard (gradient + plane, raw data) ------------------------
     fig_b92 = figure('Position', [100 100 1200 750], 'Color', 'white');
     ax = axes(fig_b92);
     s_data = surf(ax, Eve_b92, Noise_b92, Z_b92, 'EdgeColor', 'none');
@@ -202,7 +202,7 @@ else
     rotate3d(fig_b92, 'on');
     fprintf('Saved: %s\n', out);
 
-    % B92 Gaussian (gradient + plane, smoothed)
+    % -- B92 Gaussian (gradient + plane, smoothed) — exported silently ----
     fig_b92_g = figure('Position', [100 100 1200 750], 'Color', 'white', 'Visible', 'off');
     ax = axes(fig_b92_g);
     s_data = surf(ax, Eve_b92, Noise_b92, Z_b92_smooth, 'EdgeColor', 'none');
@@ -237,7 +237,7 @@ else
 end
 
 % -------------------------------------------------------------------------
-% pad PNGs with a white border
+% Local helper: pad a saved PNG with a white border
 % -------------------------------------------------------------------------
 function add_white_border(path, border_px)
     img = imread(path);
