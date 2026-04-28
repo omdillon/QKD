@@ -26,7 +26,7 @@ C_THRESH = [1.000 0.000 0.000];
 THRESH_BB84 = 11;    % percent
 THRESH_B92  = 6.5;   % percent
 
-% z-axis limits — threshold at midpoint
+% z-axis limits - threshold at midpoint
 ZLIM_BB84 = [0, 2 * THRESH_BB84];
 ZLIM_B92  = [0, 2 * THRESH_B92];
 

@@ -1,12 +1,8 @@
-"""
-Entry point for QKD simulation platform.
+"""QKD simulation entry point.
 
 Usage:
-    python -m qkd_sim configs/bb84_sweep.yaml
-    python -m qkd_sim configs/noise_comparison.yaml --show-plots
-
-Dispatch is keyed on the YAML filename stem. Each experiment has a
-dedicated plotting method on QKDPlotter; see plotter.py.
+    python -m qkd_sim <config.yaml>
+    python -m qkd_sim <config.yaml> --show-plots
 """
 
 import argparse
@@ -67,7 +63,6 @@ def _output_dir(config):
 
 
 def run_single(config):
-    """Run a single protocol trial (no plotting)."""
     protocol_class = PROTOCOLS[config.protocol]
     backend = create_backend(config.noise_type, config.noise_strength)
     eve = EveInterceptor(config.eve_rate) if config.eve_rate is not None else None
@@ -89,7 +84,6 @@ def run_single(config):
 
 
 def run_sweep(config, plot_method_name):
-    """Run a noise strength sweep and dispatch to the per-experiment plot method."""
     protocol_class = PROTOCOLS[config.protocol]
     strengths = np.linspace(config.noise_min, config.noise_max, config.noise_steps)
 
@@ -118,7 +112,6 @@ def run_sweep(config, plot_method_name):
 
 
 def run_eve_sweep(config, plot_method_name):
-    """Run an Eve interception rate sweep and dispatch to its plot method."""
     protocol_class = PROTOCOLS[config.protocol]
     eve_rates = np.linspace(config.eve_min, config.eve_max, config.eve_steps)
 
@@ -146,7 +139,6 @@ def run_eve_sweep(config, plot_method_name):
 
 
 def run_protocol_comparison(config, plot_method_name):
-    """Run the same noise sweep across multiple protocols and dispatch to plot."""
     protocol_classes = [PROTOCOLS[name] for name in config.protocols]
     strengths = np.linspace(config.noise_min, config.noise_max, config.noise_steps)
 
@@ -174,7 +166,6 @@ def run_protocol_comparison(config, plot_method_name):
 
 
 def run_eve_comparison(config, plot_method_name):
-    """Run an Eve interception rate sweep across multiple protocols and produce a combined plot."""
     protocol_classes = [PROTOCOLS[name] for name in config.protocols]
     eve_rates = np.linspace(config.eve_min, config.eve_max, config.eve_steps)
 
@@ -201,7 +192,6 @@ def run_eve_comparison(config, plot_method_name):
 
 
 def run_surface_sweep_v4(config):
-    """2-D noise × Eve sweep collecting QBER, I(A;B), I(A;E), and SKR; writes v4 CSV."""
     import csv
 
     protocol_class = PROTOCOLS[config.protocol]
@@ -240,7 +230,6 @@ def run_surface_sweep_v4(config):
 
 
 def run_surface_sweep(config):
-    """Run a 2-D noise × Eve sweep for a single protocol and write a CSV for MATLAB."""
     import csv
 
     protocol_class = PROTOCOLS[config.protocol]

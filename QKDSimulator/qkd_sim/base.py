@@ -1,10 +1,4 @@
-"""
-Abstract base classes for QKD protocol implementations.
-
-QKDResult: base result container exposing Shannon mutual information I(A;B)
-per transmitted qubit as the protocol-agnostic performance metric.
-QKDProtocol: abstract contract all protocols inherit from.
-"""
+"""Base classes for QKD protocol implementations."""
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -17,7 +11,6 @@ from .eve import EveInterceptor
 
 @dataclass
 class QKDResult:
-    """Base result container for any QKD protocol run."""
     protocol_name: str
     n_qubits: int
     alice_bits: np.ndarray
@@ -45,11 +38,7 @@ class QKDResult:
 
     @property
     def mutual_information(self) -> float:
-        """Shannon mutual information I(A;B) per transmitted qubit.
-
-        I(A;B) = sifting_rate * (1 - h(QBER)), assuming the sifted-bit
-        channel is a binary symmetric channel.
-        """
+        """I(A;B) = sifting_rate * (1 - h(QBER))."""
         if self.sifted_length == 0:
             return 0.0
         h_e = self._binary_entropy(self.qber)
@@ -57,7 +46,6 @@ class QKDResult:
 
     @property
     def eve_information(self) -> float:
-        """Eve's accessible information I(A;E) per transmitted qubit."""
         if self.protocol_name == "BB84":
             return self.key_rate * self._binary_entropy(self.qber)
         elif self.protocol_name == "B92":
@@ -85,7 +73,7 @@ class QKDResult:
         elif self.protocol_name == "B92":
             if self.qber >= 0.065:
                 return 0.0
-            # USD attack penalty; states separated by 45°, overlap = 1/√2
+            # USD attack penalty; states separated by 45 deg, overlap = 1/sqrt(2)
             denominator = 1.0 - (1.0 / np.sqrt(2.0))
             i_ae = self.key_rate * self._binary_entropy(self.qber / denominator)
 
@@ -103,7 +91,6 @@ class QKDResult:
 
 
 class QKDProtocol(ABC):
-    """Abstract contract for all QKD protocol implementations."""
 
     def __init__(self, n_qubits: int, backend: AerSimulator,
                  eve: Optional[EveInterceptor] = None):

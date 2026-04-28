@@ -1,10 +1,4 @@
-"""
-Eve eavesdropper - intercept-resend attack.
-
-Eve intercepts qubits mid-flight, measures in a random basis, then
-re-sends fresh qubits encoding her result. Wrong basis guesses (~50%)
-introduce a detectable ~25% QBER at full interception rate.
-"""
+"""Intercept-resend eavesdropper. At full interception, detectable ~25% QBER."""
 
 from typing import List, Tuple
 import numpy as np
@@ -13,20 +7,12 @@ from qiskit_aer import AerSimulator
 
 
 class EveInterceptor:
-    """Intercept-resend eavesdropper with configurable interception rate."""
 
     def __init__(self, interception_rate: float = 0.5):
         self.interception_rate = interception_rate
         self._eve_backend = AerSimulator()
 
     def intercept(self, circuits: List[QuantumCircuit]) -> Tuple[List[QuantumCircuit], np.ndarray]:
-        """
-        Apply intercept-resend to Alice's qubit stream.
-
-        1. Decide which qubits to intercept and build measurement circuits.
-        2. Batch-execute all measurements in a single simulator call.
-        3. Build replacement circuits from measurement results.
-        """
         output_circuits = list(circuits)
         intercepted_indices = []
         eve_bases = []
@@ -58,13 +44,6 @@ class EveInterceptor:
         return output_circuits, np.array(intercepted_indices, dtype=int)
 
     def intercept_b92(self, circuits: List[QuantumCircuit]) -> Tuple[List[QuantumCircuit], np.ndarray]:
-        """
-        B92-specific intercept-resend attack.
-
-        Eve measures each intercepted qubit in a random basis, then re-prepares
-        using B92 encoding: result 0 -> |0>, result 1 -> |+>. This matches the
-        physical attack since Eve knows the protocol's state alphabet.
-        """
         output_circuits = list(circuits)
         intercepted_indices = []
         eve_bases = []
@@ -98,7 +77,6 @@ class EveInterceptor:
         return output_circuits, np.array(intercepted_indices, dtype=int)
 
     def _prepare_replacement(self, bit_value: int, basis: int) -> QuantumCircuit:
-        """Build a fresh qubit encoding Eve's result in the same basis."""
         new_qc = QuantumCircuit(1, 1)
         if bit_value == 1:
             new_qc.x(0)

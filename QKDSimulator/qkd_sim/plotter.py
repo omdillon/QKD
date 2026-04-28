@@ -1,10 +1,4 @@
-"""
-Plotting module for QKD simulation results.
-
-One method per experiment config in configs/. Each method hard-codes the
-titles, filenames, and figure set for its scenario. Visual constants come
-from STYLESHEET.py so colours/fonts/sizes remain consistent across plots.
-"""
+"""Plotting module for QKD simulation results."""
 
 import re
 from pathlib import Path
@@ -84,7 +78,6 @@ def _secure_rate_zero_crossing(parameter_values, secure_rate_mean):
 
 
 class QKDPlotter:
-    """One plotting method per experiment config."""
 
     def __init__(self):
         try:
@@ -100,7 +93,6 @@ class QKDPlotter:
     def plot_bb84_sweep(self, data: BenchmarkData,
                         output_dir: Optional[Path] = None,
                         show: bool = False) -> None:
-        """BB84 depolarising-noise sweep: QBER and mutual information."""
         colour = STYLE.protocol_colours['BB84']
         marker = STYLE.protocol_markers['BB84']
         threshold = _QBER_THRESHOLDS['BB84']
@@ -158,7 +150,6 @@ class QKDPlotter:
     def plot_bb84_eve(self, data: BenchmarkData,
                       output_dir: Optional[Path] = None,
                       show: bool = False) -> None:
-        """BB84 intercept-resend sweep on a clean channel."""
         colour = STYLE.protocol_colours['BB84']
         marker = STYLE.protocol_markers['BB84']
         threshold = _QBER_THRESHOLDS['BB84']
@@ -184,7 +175,7 @@ class QKDPlotter:
                        linestyle=STYLE.threshold_linestyle_vertical,
                        linewidth=STYLE.threshold_linewidth,
                        alpha=STYLE.threshold_alpha_vertical,
-                       label=f'QBER Threshold (Intercept Rate = \u2248 {e_crit:.2f})')
+                       label=f'QBER Threshold (Intercept Rate = ~ {e_crit:.2f})')
         ax.set_xlabel('Eve Interception Rate', fontweight=STYLE.font_weight_axis_label)
         ax.set_ylabel('QBER (%)', fontweight=STYLE.font_weight_axis_label)
         ax.set_title(
@@ -212,7 +203,6 @@ class QKDPlotter:
     def plot_bb84_noisy_eve(self, data: BenchmarkData, noise_strength: float,
                             output_dir: Optional[Path] = None,
                             show: bool = False) -> None:
-        """BB84 Eve sweep on a fixed-noise depolarising channel."""
         colour = STYLE.protocol_colours['BB84']
         marker = STYLE.protocol_markers['BB84']
         threshold = _QBER_THRESHOLDS['BB84']
@@ -239,7 +229,7 @@ class QKDPlotter:
                        linestyle=STYLE.threshold_linestyle_vertical,
                        linewidth=STYLE.threshold_linewidth,
                        alpha=STYLE.threshold_alpha_vertical,
-                       label=f'QBER Threshold (Intercept Rate = \u2248 {e_crit:.2f})')
+                       label=f'QBER Threshold (Intercept Rate = ~ {e_crit:.2f})')
         ax.set_xlabel('Eve Interception Rate', fontweight=STYLE.font_weight_axis_label)
         ax.set_ylabel('QBER (%)', fontweight=STYLE.font_weight_axis_label)
         ax.set_title(
@@ -271,7 +261,6 @@ class QKDPlotter:
     def plot_b92_sweep(self, data: BenchmarkData,
                        output_dir: Optional[Path] = None,
                        show: bool = False) -> None:
-        """B92 depolarising-noise sweep: QBER and mutual information."""
         colour = STYLE.protocol_colours['B92']
         marker = STYLE.protocol_markers['B92']
         threshold = _QBER_THRESHOLDS['B92']
@@ -329,7 +318,6 @@ class QKDPlotter:
     def plot_b92_eve(self, data: BenchmarkData,
                      output_dir: Optional[Path] = None,
                      show: bool = False) -> None:
-        """B92 intercept-resend sweep on a clean channel."""
         colour = STYLE.protocol_colours['B92']
         marker = STYLE.protocol_markers['B92']
         threshold = _QBER_THRESHOLDS['B92']
@@ -355,7 +343,7 @@ class QKDPlotter:
                        linestyle=STYLE.threshold_linestyle_vertical,
                        linewidth=STYLE.threshold_linewidth,
                        alpha=STYLE.threshold_alpha_vertical,
-                       label=f'QBER Threshold (Intercept Rate = \u2248 {e_crit:.2f})')
+                       label=f'QBER Threshold (Intercept Rate = ~ {e_crit:.2f})')
         ax.set_xlabel('Eve Interception Rate', fontweight=STYLE.font_weight_axis_label)
         ax.set_ylabel('QBER (%)', fontweight=STYLE.font_weight_axis_label)
         ax.set_title(
@@ -383,7 +371,6 @@ class QKDPlotter:
     def plot_b92_noisy_eve(self, data: BenchmarkData, noise_strength: float,
                            output_dir: Optional[Path] = None,
                            show: bool = False) -> None:
-        """B92 Eve sweep on a fixed-noise depolarising channel."""
         colour = STYLE.protocol_colours['B92']
         marker = STYLE.protocol_markers['B92']
         threshold = _QBER_THRESHOLDS['B92']
@@ -410,7 +397,7 @@ class QKDPlotter:
                        linestyle=STYLE.threshold_linestyle_vertical,
                        linewidth=STYLE.threshold_linewidth,
                        alpha=STYLE.threshold_alpha_vertical,
-                       label=f'QBER Threshold (Intercept Rate = \u2248 {e_crit:.2f})')
+                       label=f'QBER Threshold (Intercept Rate = ~ {e_crit:.2f})')
         ax.set_xlabel('Eve Interception Rate', fontweight=STYLE.font_weight_axis_label)
         ax.set_ylabel('QBER (%)', fontweight=STYLE.font_weight_axis_label)
         ax.set_title(
@@ -443,7 +430,6 @@ class QKDPlotter:
                        output_dir: Optional[Path] = None,
                        show: bool = False,
                        channel_topology: str = 'both') -> None:
-        """E91 depolarising-noise sweep: mutual information and CHSH+QBER."""
         colour = STYLE.protocol_colours['E91']
         marker = STYLE.protocol_markers['E91']
         topo_str = f' ({channel_topology}-side noise)'
@@ -533,7 +519,6 @@ class QKDPlotter:
     def plot_noise_comparison(self, data_dict: Dict[str, BenchmarkData],
                               output_dir: Optional[Path] = None,
                               show: bool = False) -> None:
-        """BB84/B92/E91 overlay under depolarising noise: QBER and mutual info."""
         sample_data = next(iter(data_dict.values()))
 
         # --- QBER comparison ---
@@ -636,7 +621,7 @@ class QKDPlotter:
                                linewidth=STYLE.threshold_linewidth,
                                alpha=STYLE.threshold_alpha_vertical,
                                ymax=0.66,
-                               label=f'{proto_name} Threshold (noise ≈ {x_thresh:.3f})')
+                               label=f'{proto_name} Threshold (noise ~ {x_thresh:.3f})')
             ax.set_xlabel('Depolarising Noise Strength', fontweight=STYLE.font_weight_axis_label)
             ax.set_ylabel('Secure Key Rate (bits per 100 qubits)',
                           fontweight=STYLE.font_weight_axis_label)
@@ -656,7 +641,6 @@ class QKDPlotter:
     def plot_baseline_comparison(self, data_dict: Dict[str, BenchmarkData],
                                   output_dir: Optional[Path] = None,
                                   show: bool = False) -> None:
-        """Baseline comparison: BB84/B92/E91 on clean channel - bar charts for QBER and MI."""
         sample_data = next(iter(data_dict.values()))
         protocols = list(data_dict.keys())
         protocol_colours = [STYLE.protocol_colours.get(p, STYLE.default_colour)
@@ -673,7 +657,6 @@ class QKDPlotter:
                       color=protocol_colours, alpha=STYLE.errorbar_alpha,
                       capsize=STYLE.errorbar_capsize, error_kw={'linewidth': STYLE.errorbar_linewidth})
 
-        # Add threshold lines for BB84 and B92
         for i, proto in enumerate(protocols):
             if proto in _QBER_THRESHOLDS:
                 threshold = _QBER_THRESHOLDS[proto] * 100
@@ -720,13 +703,6 @@ class QKDPlotter:
     def plot_eve_vulnerability(self, data_dict: Dict[str, BenchmarkData],
                                output_dir: Optional[Path] = None,
                                show: bool = False) -> None:
-        """BB84 vs B92: Eve interception rate vs. QBER with D-W threshold annotations.
-
-        Both series share one axes. Horizontal threshold lines are drawn in each
-        protocol's own colour; vertical crossing lines use the other protocol's colour
-        so they remain visually distinct even when thresholds sit close together.
-        markevery=5 keeps markers legible at high step counts.
-        """
         ordered = [p for p in ('BB84', 'B92') if p in data_dict]
         for p in data_dict:
             if p not in ordered:
@@ -759,7 +735,7 @@ class QKDPlotter:
                         linestyle=STYLE.threshold_linestyle_vertical,
                         linewidth=STYLE.threshold_linewidth,
                         alpha=STYLE.threshold_alpha_vertical,
-                        label=f'{proto_name} Threshold Crossing (Eve ≈ {e_crit:.2f})',
+                        label=f'{proto_name} Threshold Crossing (Eve ~ {e_crit:.2f})',
                     )
                     if proto_name == 'B92':
                         vline_kwargs['ymax'] = 0.66
@@ -787,7 +763,6 @@ class QKDPlotter:
     def _plot_mutual_info(self, data: BenchmarkData, colour: str, marker: str,
                           xlabel: str, title: str, x_pad: float,
                           output_dir: Optional[Path], show: bool) -> None:
-        """Shared mutual-information figure: I(A;B) = sifting_rate * (1 - h(QBER))."""
         fig, ax = plt.subplots(figsize=STYLE.figsize_single)
         y = data.mutual_info_mean * 100
         y_err = data.mutual_info_std / np.sqrt(data.n_trials) * 100
@@ -813,7 +788,6 @@ class QKDPlotter:
     def _plot_secure_key_rate(self, data: BenchmarkData, colour: str, marker: str,
                               xlabel: str, title: str, x_pad: float,
                               output_dir: Optional[Path], show: bool) -> None:
-        """Devetak-Winter secure key rate: K = I(A;B) - I(A;E)."""
         fig, ax = plt.subplots(figsize=STYLE.figsize_single)
         y = data.secure_rate_mean * 100
         y_err = data.secure_rate_std / np.sqrt(data.n_trials) * 100
@@ -824,7 +798,6 @@ class QKDPlotter:
             markersize=STYLE.errorbar_markersize, color=colour, ecolor=colour,
             alpha=STYLE.errorbar_alpha, label='Secure Key Rate (Devetak-Winter)',
         )
-        # Overlay mutual information for direct comparison
         ax.plot(
             data.parameter_values, data.mutual_info_mean * 100,
             linestyle='--', color=colour, alpha=0.45,
@@ -836,7 +809,7 @@ class QKDPlotter:
                        linestyle=STYLE.threshold_linestyle_vertical,
                        linewidth=STYLE.threshold_linewidth,
                        alpha=STYLE.threshold_alpha_vertical,
-                       label=f'Security Threshold (noise ≈ {x_thresh:.3f})')
+                       label=f'Security Threshold (noise ~ {x_thresh:.3f})')
         ax.set_xlabel(xlabel, fontweight=STYLE.font_weight_axis_label)
         ax.set_ylabel('Secure Key Rate (bits per 100 qubits)',
                       fontweight=STYLE.font_weight_axis_label)
@@ -852,7 +825,6 @@ class QKDPlotter:
     def _finalise(self, fig: plt.Figure,
                   output_dir: Optional[Path], filename: str,
                   show: bool) -> None:
-        """Save and close (or show) a figure."""
         if output_dir is not None:
             dir_stem = Path(output_dir).name
             m = re.match(r'(exp\d+)', dir_stem)

@@ -1,10 +1,4 @@
-"""
-B92 protocol implementation.
-
-Alice encodes bit 0 as |0> and bit 1 as |+>. Bob randomly measures
-in Z or X basis. Conclusive events (Bob result == 1) form the sifted key.
-The identity gate (qc.id) marks where channel noise is applied.
-"""
+"""B92 protocol. The identity gate (qc.id) marks where channel noise is applied."""
 
 from dataclasses import dataclass
 from typing import Optional, List
@@ -18,20 +12,11 @@ from ..eve import EveInterceptor
 
 @dataclass
 class B92Result(QKDResult):
-    """B92-specific result with Bob's basis choices and conclusive mask."""
     bob_bases: np.ndarray = None
     conclusive_mask: np.ndarray = None
 
 
 class B92Protocol(QKDProtocol):
-    """
-    Runs the complete B92 protocol.
-
-    Key differences from BB84:
-    - Alice uses 2 non-orthogonal states (not 4)
-    - Sifting uses conclusive events (Bob == 1) instead of basis matching
-    - Noise-free sifting rate is 25% (vs BB84's 50%)
-    """
 
     def __init__(self, n_qubits: int, backend: AerSimulator,
                  eve: Optional[EveInterceptor] = None):
@@ -47,7 +32,6 @@ class B92Protocol(QKDProtocol):
 
     @classmethod
     def theoretical_sifting_rate(cls) -> float:
-        """Noise-free B92 sifting rate (zero-noise approximation)."""
         return 0.25
 
     @staticmethod
@@ -59,7 +43,6 @@ class B92Protocol(QKDProtocol):
         return None
 
     def run(self) -> B92Result:
-        """Run the full B92 protocol and return results."""
         circuits = self._alice_prepare()
 
         if self.eve is not None:
@@ -69,7 +52,6 @@ class B92Protocol(QKDProtocol):
         return self._post_process()
 
     def _alice_prepare(self) -> List[QuantumCircuit]:
-        """Alice encodes: bit 0 -> |0>, bit 1 -> |+>."""
         self._alice_bits = np.random.randint(0, 2, size=self.n_qubits)
 
         circuits = []
@@ -83,7 +65,6 @@ class B92Protocol(QKDProtocol):
         return circuits
 
     def _bob_measure(self, circuits: List[QuantumCircuit]) -> None:
-        """Bob randomly measures in Z or X basis."""
         self._bob_bases = np.random.randint(0, 2, size=self.n_qubits)
         self._bob_results = np.zeros(self.n_qubits, dtype=int)
 
@@ -98,7 +79,6 @@ class B92Protocol(QKDProtocol):
             self._bob_results[i] = int(result.get_memory(i)[0])
 
     def _post_process(self) -> B92Result:
-        """Sift using conclusive events (Bob result == 1)."""
         conclusive_mask = (self._bob_results == 1)
         sifted_indices = np.where(conclusive_mask)[0]
 

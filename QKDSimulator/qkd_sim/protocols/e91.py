@@ -1,20 +1,4 @@
-"""
-E91 (Ekert 1991) protocol implementation.
-
-Entanglement-based QKD using singlet states and CHSH inequality.
-Alice and Bob each receive one half of an EPR pair and choose one
-of three measurement angles in the XZ-plane.
-
-Singlet: |Psi-> = (|01> - |10>) / sqrt(2)
-
-Measurement angles (Ekert 1991):
-    Alice: a1=0, a2=pi/4, a3=pi/2
-    Bob:   b1=pi/4, b2=pi/2, b3=3pi/4
-
-Channel topology:
-    'both': noise on both qubits independently (V^2 = (1-p)^2)
-    'bob':  noise on Bob's qubit only (V = 1-p, matches BB84)
-"""
+"""E91 (Ekert 1991) entanglement-based QKD using singlet states and CHSH inequality."""
 
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Tuple
@@ -34,7 +18,6 @@ _TSIRELSON_BOUND = 2.0 * np.sqrt(2.0)
 
 @dataclass
 class E91Result(QKDResult):
-    """E91-specific result with CHSH data."""
     alice_angles: np.ndarray = None
     bob_angles: np.ndarray = None
     alice_outcomes: np.ndarray = None
@@ -56,13 +39,6 @@ class E91Result(QKDResult):
 
 
 class E91Protocol(QKDProtocol):
-    """
-    Runs the complete E91 protocol.
-
-    Two-qubit entangled circuits per round, three measurement angles
-    per party, sifting by angle-pair lookup table, CHSH parameter
-    as a security indicator.
-    """
 
     ALICE_ANGLES = np.array([0.0, np.pi / 4, np.pi / 2])
     BOB_ANGLES = np.array([np.pi / 4, np.pi / 2, 3 * np.pi / 4])
@@ -110,7 +86,6 @@ class E91Protocol(QKDProtocol):
     @staticmethod
     def theoretical_qber(noise_type: str, strengths: np.ndarray,
                          channel_topology: str = 'both') -> Optional[np.ndarray]:
-        """Analytical QBER for E91 under depolarising noise."""
         p = np.asarray(strengths, dtype=float)
         if noise_type == 'depolarizing':
             if channel_topology == 'both':
@@ -120,7 +95,6 @@ class E91Protocol(QKDProtocol):
         return None
 
     def run(self) -> E91Result:
-        """Run the full E91 protocol."""
         if self.eve is not None:
             raise NotImplementedError(
                 "E91 eavesdropper model not yet supported. Run with eve=None.")
@@ -130,7 +104,6 @@ class E91Protocol(QKDProtocol):
         return self._post_process()
 
     def _prepare_pairs(self) -> List[QuantumCircuit]:
-        """Build singlet circuits with channel id markers."""
         self._alice_angles = np.random.randint(0, 3, size=self.n_qubits)
         self._bob_angles = np.random.randint(0, 3, size=self.n_qubits)
 
@@ -155,7 +128,6 @@ class E91Protocol(QKDProtocol):
         return circuits
 
     def _measure(self, circuits: List[QuantumCircuit]) -> None:
-        """Apply measurement rotations and batch-execute."""
         self._alice_outcomes = np.zeros(self.n_qubits, dtype=int)
         self._bob_outcomes = np.zeros(self.n_qubits, dtype=int)
 
@@ -176,7 +148,6 @@ class E91Protocol(QKDProtocol):
             self._bob_outcomes[i] = int(bits[-2])
 
     def _post_process(self) -> E91Result:
-        """Sift key, compute QBER, evaluate CHSH parameter."""
         sift_labels = self._SIFT_TABLE[self._alice_angles, self._bob_angles]
         key_mask = (sift_labels == 'key')
         chsh_mask = (sift_labels == 'chsh')
@@ -196,7 +167,6 @@ class E91Protocol(QKDProtocol):
 
         key_rate = sifted_length / self.n_qubits
 
-        # CHSH correlations
         correlations: Dict[Tuple[int, int], float] = {}
         s_value = 0.0
         for (ai, bi), sign in self._CHSH_S_TERMS:

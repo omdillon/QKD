@@ -1,11 +1,4 @@
-"""
-Central stylesheet for all QKD simulation plots.
-
-Edit STYLE below to restyle every plot produced by QKDPlotter.
-
-    from qkd_sim.STYLESHEET import STYLE
-    STYLE.font_family = 'Arial'
-"""
+"""Visual constants for all QKD simulation plots."""
 
 from dataclasses import dataclass, field
 from typing import Dict, Tuple
@@ -13,7 +6,6 @@ from typing import Dict, Tuple
 
 @dataclass
 class PlotStyle:
-    """All visual parameters for QKD plots."""
 
     # Fonts
     font_family: str = "Times New Roman"
@@ -96,7 +88,6 @@ class PlotStyle:
     title_pad: int = 15
 
     def get_rcparams(self) -> dict:
-        """Return a dict suitable for plt.rcParams.update()."""
         return {
             'font.family': 'serif',
             'font.serif': [self.font_family],

@@ -1,9 +1,4 @@
-"""
-Noise model setup for QKD simulation.
-
-Noise is applied only to the 'id' gate (channel marker).
-Supported: none, depolarizing
-"""
+"""Noise model factory. Noise is applied to the 'id' gate (channel marker)."""
 
 from qiskit_aer import AerSimulator
 from qiskit_aer.noise import (
@@ -19,7 +14,6 @@ _NOISE_DESCRIPTIONS = {
 
 
 def create_backend(noise_type: str, strength: float = 0.0) -> AerSimulator:
-    """Return an AerSimulator with noise applied to 'id' gates."""
     if noise_type == 'none':
         return AerSimulator()
 
@@ -31,7 +25,6 @@ def create_backend(noise_type: str, strength: float = 0.0) -> AerSimulator:
 
 
 def _create_error(noise_type: str, strength: float):
-    """Build the Qiskit QuantumError for the given noise type."""
     if noise_type == 'depolarizing':
         return depolarizing_error(strength, 1)
     else:
@@ -39,5 +32,4 @@ def _create_error(noise_type: str, strength: float):
 
 
 def get_noise_description(noise_type: str) -> str:
-    """Human-readable label for a noise model."""
     return _NOISE_DESCRIPTIONS.get(noise_type, f'Unknown ({noise_type})')

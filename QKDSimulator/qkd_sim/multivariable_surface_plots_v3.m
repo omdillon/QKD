@@ -26,7 +26,7 @@ THRESH_B92  = 6.5;   % percent
 ZLIM_BB84 = [0, 2 * THRESH_BB84];   % [0, 22]
 ZLIM_B92  = [0, 2 * THRESH_B92];    % [0, 13]
 
-% Threshold plane colours, chosen to contrast with both below and above surface colours
+% Threshold plane colours - contrasting with both surface colour ranges
 C_PLANE_BB84 = [1.00, 0.80, 0.00];   % golden yellow  (contrasts blue and red)
 C_PLANE_B92  = [0.65, 0.00, 0.90];   % bright violet  (contrasts teal and red)
 

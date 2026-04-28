@@ -1,9 +1,4 @@
-"""
-Benchmarking tools for QKD protocol simulation.
-
-Runs protocols across noise strength or Eve rate ranges and
-aggregates QBER / mutual information statistics for plotting.
-"""
+"""Benchmarking tools for QKD protocol simulation."""
 
 import os
 from concurrent.futures import ProcessPoolExecutor
@@ -19,7 +14,6 @@ from .eve import EveInterceptor
 
 @dataclass
 class BenchmarkData:
-    """Aggregated results from a parameter sweep."""
     protocol_name: str
     parameter_name: str
     parameter_values: np.ndarray
@@ -40,7 +34,6 @@ class BenchmarkData:
 
 @dataclass
 class SurfaceBenchmarkData:
-    """Results from a 2-D (noise_strength × eve_rate) parameter sweep."""
     protocol_name: str
     noise_strengths: np.ndarray   # shape (S,)
     eve_rates: np.ndarray          # shape (E,)
@@ -49,14 +42,13 @@ class SurfaceBenchmarkData:
     n_trials: int
     n_qubits: int
     noise_type: str
-    iab_mean: Optional[np.ndarray] = None   # shape (S, E) — I(A;B) per qubit
-    iae_mean: Optional[np.ndarray] = None   # shape (S, E) — I(A;E) per qubit
-    skr_mean: Optional[np.ndarray] = None   # shape (S, E) — secure key rate per qubit
+    iab_mean: Optional[np.ndarray] = None   # shape (S, E) - I(A;B) per qubit
+    iae_mean: Optional[np.ndarray] = None   # shape (S, E) - I(A;E) per qubit
+    skr_mean: Optional[np.ndarray] = None   # shape (S, E) - secure key rate per qubit
 
 
 def _surface_cell_worker(args):
-    """Run n_trials at a single (noise_strength, eve_rate) cell. Module-level
-    so it is picklable on Windows (spawn start method)."""
+    # Module-level for picklability under Windows spawn.
     protocol_class, noise_type, strength, rate, n_trials, n_qubits = args
     backend = create_backend(noise_type, strength)
     eve = EveInterceptor(rate) if rate > 0 else None
@@ -67,7 +59,6 @@ def _surface_cell_worker(args):
 
 
 def _surface_cell_worker_v4(args):
-    """Run n_trials at a single cell, collecting QBER, I(A;B), I(A;E), and SKR."""
     protocol_class, noise_type, strength, rate, n_trials, n_qubits = args
     backend = create_backend(noise_type, strength)
     eve = EveInterceptor(rate) if rate > 0 else None
@@ -79,7 +70,6 @@ def _surface_cell_worker_v4(args):
 
 
 class BenchmarkRunner:
-    """Runs multi-trial sweeps over noise strength or Eve interception rate."""
 
     def run_noise_sweep(
         self,
@@ -92,7 +82,6 @@ class BenchmarkRunner:
         eve_rate: float = 0.5,
         protocol_kwargs: Optional[Dict[str, Any]] = None,
     ) -> BenchmarkData:
-        """Sweep across noise strengths, running n_trials at each point."""
         strengths = np.asarray(strengths)
         n_strengths = len(strengths)
         extra_kwargs = protocol_kwargs or {}
@@ -158,7 +147,6 @@ class BenchmarkRunner:
         noise_strength: float = 0.0,
         protocol_kwargs: Optional[Dict[str, Any]] = None,
     ) -> BenchmarkData:
-        """Sweep across Eve interception rates."""
         eve_rates = np.asarray(eve_rates)
         n_rates = len(eve_rates)
         extra_kwargs = protocol_kwargs or {}
@@ -224,7 +212,6 @@ class BenchmarkRunner:
         n_qubits: int = 100,
         protocol_kwargs: Optional[Dict[str, Dict[str, Any]]] = None,
     ) -> Dict[str, BenchmarkData]:
-        """Run the same noise sweep on multiple protocols."""
         per_proto_kwargs = protocol_kwargs or {}
         results: Dict[str, BenchmarkData] = {}
 
@@ -258,7 +245,6 @@ class BenchmarkRunner:
         n_trials: int = 30,
         n_qubits: int = 100,
     ) -> SurfaceBenchmarkData:
-        """2-D sweep over noise_strength × eve_rate, collecting mean QBER at each cell."""
         strengths = np.asarray(strengths)
         eve_rates = np.asarray(eve_rates)
         n_s, n_e = len(strengths), len(eve_rates)
@@ -296,7 +282,6 @@ class BenchmarkRunner:
         n_trials: int = 30,
         n_qubits: int = 100,
     ) -> SurfaceBenchmarkData:
-        """2-D sweep collecting QBER, I(A;B), I(A;E), and SKR at each cell."""
         strengths = np.asarray(strengths)
         eve_rates = np.asarray(eve_rates)
         n_s, n_e = len(strengths), len(eve_rates)

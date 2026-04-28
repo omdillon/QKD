@@ -1,10 +1,4 @@
-"""
-BB84 protocol implementation.
-
-Alice prepares qubits in random bits and bases, sends them through
-a noisy channel to Bob. Matching-basis bits form the sifted key.
-The identity gate (qc.id) marks where channel noise is applied.
-"""
+"""BB84 protocol. The identity gate (qc.id) marks where channel noise is applied."""
 
 from dataclasses import dataclass
 from typing import Optional, List
@@ -18,7 +12,6 @@ from ..eve import EveInterceptor
 
 @dataclass
 class BB84Result(QKDResult):
-    """BB84-specific result with Alice/Bob basis arrays."""
     alice_bases: np.ndarray = None
     bob_bases: np.ndarray = None
 
@@ -31,7 +24,6 @@ class BB84Result(QKDResult):
 
 
 class BB84Protocol(QKDProtocol):
-    """Runs the complete BB84 protocol."""
 
     def __init__(self, n_qubits: int, backend: AerSimulator,
                  eve: Optional[EveInterceptor] = None):
@@ -48,7 +40,6 @@ class BB84Protocol(QKDProtocol):
 
     @staticmethod
     def theoretical_qber(noise_type: str, strengths: np.ndarray) -> Optional[np.ndarray]:
-        """Analytical QBER for BB84 under various noise models."""
         p = np.asarray(strengths, dtype=float)
 
         if noise_type == 'depolarizing':
@@ -56,7 +47,6 @@ class BB84Protocol(QKDProtocol):
         return None
 
     def run(self) -> BB84Result:
-        """Run the full BB84 protocol and return results."""
         circuits = self._alice_prepare()
 
         if self.eve is not None:
@@ -66,7 +56,6 @@ class BB84Protocol(QKDProtocol):
         return self._post_process()
 
     def _alice_prepare(self) -> List[QuantumCircuit]:
-        """Generate random bits/bases and build one circuit per qubit."""
         self._alice_bits = np.random.randint(0, 2, size=self.n_qubits)
         self._alice_bases = np.random.randint(0, 2, size=self.n_qubits)
 
@@ -83,7 +72,6 @@ class BB84Protocol(QKDProtocol):
         return circuits
 
     def _bob_measure(self, circuits: List[QuantumCircuit]) -> None:
-        """Bob picks random bases and measures each qubit."""
         self._bob_bases = np.random.randint(0, 2, size=self.n_qubits)
         self._bob_results = np.zeros(self.n_qubits, dtype=int)
 
@@ -98,7 +86,6 @@ class BB84Protocol(QKDProtocol):
             self._bob_results[i] = int(result.get_memory(i)[0])
 
     def _post_process(self) -> BB84Result:
-        """Sift the key and compute QBER."""
         matching_mask = self._alice_bases == self._bob_bases
         sifted_indices = np.where(matching_mask)[0]
         sifted_key_alice = self._alice_bits[matching_mask]

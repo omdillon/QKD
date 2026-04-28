@@ -1,4 +1,4 @@
-"""QKD simulation platform — BB84, B92, E91 benchmarking."""
+"""QKD simulation platform - BB84, B92, E91 benchmarking."""
 
 __version__ = "2.0.0"
 
