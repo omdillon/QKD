@@ -90,3 +90,8 @@ python -m qkd_sim configs/exp6_b92_surface_v4.yaml
 
 for package install:
 pip install -r requirements.txt
+
+
+------------- experiments 5&6 v5  more dense surfaces  ------------------
+python -m qkd_sim configs/exp5_bb84_surface_v5.yaml
+python -m qkd_sim configs/exp6_b92_surface_v5.yaml

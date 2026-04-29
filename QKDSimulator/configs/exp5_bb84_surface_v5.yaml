@@ -1,0 +1,18 @@
+# Exp 5 v.5 — BB84 3D Surface (CSV export for MATLAB)
+# Higher resolution and reduced variance vs v4: 51x57 grid (was 31x41), 40 trials/point (was 20).
+# Runtime estimate: ~46-57 min (calibrated from v4 ~10-12.5 min/experiment baseline).
+# Output: results/sim runs v.6 - FINAL/exp5_bb84_surface_v5/bb84_surface_v5.csv
+mode: surface_sweep
+protocol: bb84
+n_qubits: 500
+n_trials: 40
+noise_type: depolarizing
+noise_min: 0.0
+noise_max: 0.30
+noise_steps: 51
+eve_min: 0.0
+eve_max: 0.60
+eve_steps: 57
+output_dir: ./results/sim runs v.6 - FINAL/exp5_bb84_surface_v5
+save_plots: false
+show_plots: false

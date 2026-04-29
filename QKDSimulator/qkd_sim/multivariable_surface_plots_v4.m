@@ -34,8 +34,16 @@ ZLIM_B92_QBER  = [0, 2 * THRESH_B92];    % [0, 13]
 % MI and SKR z-axis limits (bits per 100 qubits)
 ZLIM_BB84_MI  = [0, 55];
 ZLIM_B92_MI   = [0, 30];
-ZLIM_BB84_SKR = [0, 55];
-ZLIM_B92_SKR  = [0, 30];
+ZLIM_BB84_SKR = [0, 50];
+ZLIM_B92_SKR  = [0, 25];
+
+% View angles [azimuth, elevation] — tune here, applied to each plot below
+VIEW_BB84_QBER = [30, 30];
+VIEW_BB84_MI   = [30, 30];
+VIEW_BB84_SKR  = [80, 15];
+VIEW_B92_QBER  = [30, 30];
+VIEW_B92_MI    = [30, 30];
+VIEW_B92_SKR   = [80, 15];
 
 % Mutual Information surface colours (flat, no gradient)
 C_IAB_BB84 = [0.10, 0.40, 0.70];   % blue  - I(A;B) BB84
@@ -43,10 +51,10 @@ C_IAB_B92  = [0.15, 0.72, 0.65];   % teal  - I(A;B) B92
 C_IAE      = [0.82, 0.15, 0.10];   % red   - I(A;E)
 
 % Axis and colorbar positions
-AX_POS = [0.07, 0.08, 0.70, 0.82];
+AX_POS = [0.12, 0.10, 0.65, 0.78];
 CB_POS = [0.84, 0.14, 0.022, 0.66];
 
-BORDER_PX = 42;
+BORDER_PX = 80;
 
 % -------------------------------------------------------------------------
 % Data paths (v.4 results)
@@ -98,21 +106,24 @@ else
     hold(ax, 'on');
     s_plane = surf(ax, Eve_bb84, Noise_bb84, THRESH_BB84 * ones(size(Z_bb84_qber)), ...
         'FaceAlpha', 0.25, 'FaceColor', C_PLANE_BB84, 'EdgeColor', 'none');
+
+
     xlabel(ax, 'Eve Interception Rate (%)', 'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
     ylabel(ax, 'Noise Strength (%)',        'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
-    zlabel(ax, 'QBER (%)',              'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
-    title(ax, {'BB84 Protocol - Depolarising Channel - QBER Surface', ...
-               '(500 qubits, 20 trials per point)'}, ...
-        'FontName', FONT, 'FontSize', SZ_TITLE, 'FontWeight', 'bold');
+    zlabel(ax, 'QBER (%)',                  'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
+    title(ax, {'BB84 Protocol - Depolarising Channel - QBER Surface', '(500 qubits, 20 trials per point)'},'FontName', FONT, 'FontSize', SZ_TITLE, 'FontWeight', 'bold');
+    
+    
     legend(ax, [s_data, s_plane], ...
         {'QBER Surface', sprintf('Security Threshold (%.0f%%)', THRESH_BB84)}, ...
         'FontName', FONT, 'FontSize', SZ_LEGEND, 'Location', 'northwest', ...
         'Box', 'on', 'BackgroundAlpha', 0.8);
     set(ax, 'FontName', FONT, 'FontSize', SZ_TICK);
-    grid(ax, 'on'); ax.GridAlpha = 0.3; view(ax, [30 30]); drawnow;
+    grid(ax, 'on'); ax.GridAlpha = 0.3; view(ax, VIEW_BB84_QBER);
     ax.Position = AX_POS; cb.Position = CB_POS;
+    drawnow;
     out = fullfile(fileparts(bb84_csv), 'exp5_bb84_qber_v4.png');
-    exportgraphics(fig, out, 'Resolution', 300);
+    exportgraphics(fig, out, 'Resolution', 300, 'Padding', 'loose');
     add_white_border(out, BORDER_PX);
     rotate3d(fig, 'on');
     fprintf('Saved: %s\n', out);
@@ -138,10 +149,11 @@ else
         'Box', 'on', 'BackgroundAlpha', 0.8);
     zlim(ax, ZLIM_BB84_MI);
     set(ax, 'FontName', FONT, 'FontSize', SZ_TICK);
-    grid(ax, 'on'); ax.GridAlpha = 0.3; view(ax, [30 30]); drawnow;
-    ax.Position = [0.07, 0.08, 0.86, 0.82];   % wider, no colorbar
+    grid(ax, 'on'); ax.GridAlpha = 0.3; view(ax, VIEW_BB84_MI);
+    ax.Position = [0.12, 0.10, 0.82, 0.78];   % wider, no colorbar
+    drawnow;
     out = fullfile(fileparts(bb84_csv), 'exp5_bb84_mutual_info_v4.png');
-    exportgraphics(fig, out, 'Resolution', 300);
+    exportgraphics(fig, out, 'Resolution', 300, 'Padding', 'loose');
     add_white_border(out, BORDER_PX);
     rotate3d(fig, 'on');
     fprintf('Saved: %s\n', out);
@@ -164,10 +176,11 @@ else
                '(500 qubits, 20 trials per point)'}, ...
         'FontName', FONT, 'FontSize', SZ_TITLE, 'FontWeight', 'bold');
     set(ax, 'FontName', FONT, 'FontSize', SZ_TICK);
-    grid(ax, 'on'); ax.GridAlpha = 0.3; view(ax, [45 30]); drawnow;
+    grid(ax, 'on'); ax.GridAlpha = 0.3; view(ax, VIEW_BB84_SKR);
     ax.Position = AX_POS; cb.Position = CB_POS;
+    drawnow;
     out = fullfile(fileparts(bb84_csv), 'exp5_bb84_skr_v4.png');
-    exportgraphics(fig, out, 'Resolution', 300);
+    exportgraphics(fig, out, 'Resolution', 300, 'Padding', 'loose');
     add_white_border(out, BORDER_PX);
     rotate3d(fig, 'on');
     fprintf('Saved: %s\n', out);
@@ -225,10 +238,11 @@ else
         'FontName', FONT, 'FontSize', SZ_LEGEND, 'Location', 'northwest', ...
         'Box', 'on', 'BackgroundAlpha', 0.8);
     set(ax, 'FontName', FONT, 'FontSize', SZ_TICK);
-    grid(ax, 'on'); ax.GridAlpha = 0.3; view(ax, [30 30]); drawnow;
+    grid(ax, 'on'); ax.GridAlpha = 0.3; view(ax, VIEW_B92_QBER);
     ax.Position = AX_POS; cb.Position = CB_POS;
+    drawnow;
     out = fullfile(fileparts(b92_csv), 'exp6_b92_qber_v4.png');
-    exportgraphics(fig, out, 'Resolution', 300);
+    exportgraphics(fig, out, 'Resolution', 300, 'Padding', 'loose');
     add_white_border(out, BORDER_PX);
     rotate3d(fig, 'on');
     fprintf('Saved: %s\n', out);
@@ -254,10 +268,11 @@ else
         'Box', 'on', 'BackgroundAlpha', 0.8);
     zlim(ax, ZLIM_B92_MI);
     set(ax, 'FontName', FONT, 'FontSize', SZ_TICK);
-    grid(ax, 'on'); ax.GridAlpha = 0.3; view(ax, [30 30]); drawnow;
-    ax.Position = [0.07, 0.08, 0.86, 0.82];   % wider, no colorbar
+    grid(ax, 'on'); ax.GridAlpha = 0.3; view(ax, VIEW_B92_MI);
+    ax.Position = [0.12, 0.10, 0.82, 0.78];   % wider, no colorbar
+    drawnow;
     out = fullfile(fileparts(b92_csv), 'exp6_b92_mutual_info_v4.png');
-    exportgraphics(fig, out, 'Resolution', 300);
+    exportgraphics(fig, out, 'Resolution', 300, 'Padding', 'loose');
     add_white_border(out, BORDER_PX);
     rotate3d(fig, 'on');
     fprintf('Saved: %s\n', out);
@@ -280,10 +295,11 @@ else
                '(500 qubits, 20 trials per point)'}, ...
         'FontName', FONT, 'FontSize', SZ_TITLE, 'FontWeight', 'bold');
     set(ax, 'FontName', FONT, 'FontSize', SZ_TICK);
-    grid(ax, 'on'); ax.GridAlpha = 0.3; view(ax, [45 30]); drawnow;
+    grid(ax, 'on'); ax.GridAlpha = 0.3; view(ax, VIEW_B92_SKR);
     ax.Position = AX_POS; cb.Position = CB_POS;
+    drawnow;
     out = fullfile(fileparts(b92_csv), 'exp6_b92_skr_v4.png');
-    exportgraphics(fig, out, 'Resolution', 300);
+    exportgraphics(fig, out, 'Resolution', 300, 'Padding', 'loose');
     add_white_border(out, BORDER_PX);
     rotate3d(fig, 'on');
     fprintf('Saved: %s\n', out);

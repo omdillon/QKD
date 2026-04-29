@@ -49,6 +49,8 @@ EXPERIMENT_PLOTTERS = {
     'exp6_b92_surface_v3':    ('surface_sweep',       '__csv__'),
     'exp5_bb84_surface_v4':   ('surface_sweep',       '__csv_v4__'),
     'exp6_b92_surface_v4':    ('surface_sweep',       '__csv_v4__'),
+    'exp5_bb84_surface_v5':   ('surface_sweep',       '__csv_v5__'),
+    'exp6_b92_surface_v5':    ('surface_sweep',       '__csv_v5__'),
 }
 
 
@@ -229,6 +231,44 @@ def run_surface_sweep_v4(config):
     print(f"  CSV saved: {csv_path}")
 
 
+def run_surface_sweep_v5(config):
+    import csv
+
+    protocol_class = PROTOCOLS[config.protocol]
+    strengths = np.linspace(config.noise_min, config.noise_max, config.noise_steps)
+    eve_rates = np.linspace(config.eve_min, config.eve_max, config.eve_steps)
+
+    runner = BenchmarkRunner()
+    surface = runner.run_surface_sweep_v4(
+        protocol_class=protocol_class,
+        noise_type=config.noise_type,
+        strengths=strengths,
+        eve_rates=eve_rates,
+        n_trials=config.n_trials,
+        n_qubits=config.n_qubits,
+    )
+
+    out_dir = Path(config.output_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    csv_path = out_dir / f"{config.protocol.lower()}_surface_v5.csv"
+
+    with open(csv_path, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['noise_strength', 'eve_rate', 'qber_mean',
+                         'iab_mean', 'iae_mean', 'skr_mean'])
+        for i, noise in enumerate(surface.noise_strengths):
+            for j, eve in enumerate(surface.eve_rates):
+                writer.writerow([
+                    f'{noise:.4f}', f'{eve:.4f}',
+                    f'{surface.qber_mean[i, j]:.6f}',
+                    f'{surface.iab_mean[i, j]:.6f}',
+                    f'{surface.iae_mean[i, j]:.6f}',
+                    f'{surface.skr_mean[i, j]:.6f}',
+                ])
+
+    print(f"  CSV saved: {csv_path}")
+
+
 def run_surface_sweep(config):
     import csv
 
@@ -301,6 +341,8 @@ def main():
         elif config.mode == 'surface_sweep':
             if plot_method_name == '__csv_v4__':
                 run_surface_sweep_v4(config)
+            elif plot_method_name == '__csv_v5__':
+                run_surface_sweep_v5(config)
             else:
                 run_surface_sweep(config)
         else:
