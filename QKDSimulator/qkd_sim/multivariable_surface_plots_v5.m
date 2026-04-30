@@ -40,10 +40,10 @@ ZLIM_B92_SKR  = [0, 25];
 % View angles [azimuth, elevation] — tune here, applied to each plot below
 VIEW_BB84_QBER = [30, 30];
 VIEW_BB84_MI   = [30, 30];
-VIEW_BB84_SKR  = [80, 15];
+VIEW_BB84_SKR  = [80, 20];
 VIEW_B92_QBER  = [30, 30];
 VIEW_B92_MI    = [30, 30];
-VIEW_B92_SKR   = [80, 15];
+VIEW_B92_SKR   = [80, 20];
 
 % Mutual Information surface colours (flat, no gradient)
 C_IAB_BB84 = [0.10, 0.40, 0.70];   % blue  - I(A;B) BB84
@@ -54,7 +54,7 @@ C_IAE      = [0.82, 0.15, 0.10];   % red   - I(A;E)
 AX_POS = [0.12, 0.10, 0.65, 0.78];
 CB_POS = [0.84, 0.14, 0.022, 0.66];
 
-BORDER_PX = 80;
+BORDER_PX = 10;
 
 % -------------------------------------------------------------------------
 % Data paths (v.5 results)
@@ -108,7 +108,7 @@ else
         'FaceAlpha', 0.25, 'FaceColor', C_PLANE_BB84, 'EdgeColor', 'none');
 
 
-    xlabel(ax, 'Eve Interception Rate (%)', 'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
+    xlabel(ax, {'Eve Interception', 'Rate (%)'}, 'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
     ylabel(ax, 'Noise Strength (%)',        'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
     zlabel(ax, 'QBER (%)',                  'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
     title(ax, {'BB84 Protocol - Depolarising Channel - QBER Surface', '(500 qubits, 40 trials per point)'},'FontName', FONT, 'FontSize', SZ_TITLE, 'FontWeight', 'bold');
@@ -123,7 +123,7 @@ else
     ax.Position = AX_POS; cb.Position = CB_POS;
     drawnow;
     out = fullfile(fileparts(bb84_csv), 'exp5_bb84_qber_v5.png');
-    exportgraphics(fig, out, 'Resolution', 300, 'Padding', 'loose');
+    exportgraphics(fig, out, 'Resolution', 300, 'Padding', 'tight');
     add_white_border(out, BORDER_PX);
     rotate3d(fig, 'on');
     fprintf('Saved: %s\n', out);
@@ -138,7 +138,7 @@ else
     hold(ax, 'on');
     s_iae = surf(ax, Eve_bb84, Noise_bb84, Z_bb84_iae);
     s_iae.FaceColor = C_IAE; s_iae.FaceAlpha = 0.65; s_iae.EdgeAlpha = 0.15;
-    xlabel(ax, 'Eve Interception Rate (%)',       'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
+    xlabel(ax, {'Eve Interception', 'Rate (%)'},       'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
     ylabel(ax, 'Noise Strength (%)',              'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
     zlabel(ax, 'Mutual Information (bits/100 qubits)', 'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
     title(ax, {'BB84 Protocol - Depolarising Channel - Mutual Information Surfaces', ...
@@ -153,7 +153,7 @@ else
     ax.Position = [0.12, 0.10, 0.82, 0.78];   % wider, no colorbar
     drawnow;
     out = fullfile(fileparts(bb84_csv), 'exp5_bb84_mutual_info_v5.png');
-    exportgraphics(fig, out, 'Resolution', 300, 'Padding', 'loose');
+    exportgraphics(fig, out, 'Resolution', 300, 'Padding', 'tight');
     add_white_border(out, BORDER_PX);
     rotate3d(fig, 'on');
     fprintf('Saved: %s\n', out);
@@ -169,7 +169,7 @@ else
     cb.Label.String = 'Secure Key Rate (bits/100 qubits)'; cb.Label.FontName = FONT; cb.Label.FontSize = SZ_LABEL;
     zlim(ax, ZLIM_BB84_SKR); clim(ax, ZLIM_BB84_SKR);
     cb.Ticks = linspace(ZLIM_BB84_SKR(1), ZLIM_BB84_SKR(2), 5);
-    xlabel(ax, 'Eve Interception Rate (%)',          'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
+    xlabel(ax, {'Eve Interception', 'Rate (%)'},          'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
     ylabel(ax, 'Noise Strength (%)',                 'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
     zlabel(ax, 'Secure Key Rate (bits/100 qubits)',    'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
     title(ax, {'BB84 Protocol - Depolarising Channel - Secure Key Rate Surface', ...
@@ -180,7 +180,7 @@ else
     ax.Position = AX_POS; cb.Position = CB_POS;
     drawnow;
     out = fullfile(fileparts(bb84_csv), 'exp5_bb84_skr_v5.png');
-    exportgraphics(fig, out, 'Resolution', 300, 'Padding', 'loose');
+    exportgraphics(fig, out, 'Resolution', 300, 'Padding', 'tight');
     add_white_border(out, BORDER_PX);
     rotate3d(fig, 'on');
     fprintf('Saved: %s\n', out);
@@ -227,7 +227,7 @@ else
     hold(ax, 'on');
     s_plane = surf(ax, Eve_b92, Noise_b92, THRESH_B92 * ones(size(Z_b92_qber)), ...
         'FaceAlpha', 0.25, 'FaceColor', C_PLANE_B92, 'EdgeColor', 'none');
-    xlabel(ax, 'Eve Interception Rate (%)', 'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
+    xlabel(ax, {'Eve Interception', 'Rate (%)'}, 'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
     ylabel(ax, 'Noise Strength (%)',        'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
     zlabel(ax, 'QBER (%)',              'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
     title(ax, {'B92 Protocol - Depolarising Channel - QBER Surface', ...
@@ -242,7 +242,7 @@ else
     ax.Position = AX_POS; cb.Position = CB_POS;
     drawnow;
     out = fullfile(fileparts(b92_csv), 'exp6_b92_qber_v5.png');
-    exportgraphics(fig, out, 'Resolution', 300, 'Padding', 'loose');
+    exportgraphics(fig, out, 'Resolution', 300, 'Padding', 'tight');
     add_white_border(out, BORDER_PX);
     rotate3d(fig, 'on');
     fprintf('Saved: %s\n', out);
@@ -257,7 +257,7 @@ else
     hold(ax, 'on');
     s_iae = surf(ax, Eve_b92, Noise_b92, Z_b92_iae);
     s_iae.FaceColor = C_IAE; s_iae.FaceAlpha = 0.65; s_iae.EdgeAlpha = 0.15;
-    xlabel(ax, 'Eve Interception Rate (%)',       'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
+    xlabel(ax, {'Eve Interception', 'Rate (%)'},       'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
     ylabel(ax, 'Noise Strength (%)',              'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
     zlabel(ax, 'Mutual Information (bits/100 qubits)', 'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
     title(ax, {'B92 Protocol - Depolarising Channel - Mutual Information Surfaces', ...
@@ -272,7 +272,7 @@ else
     ax.Position = [0.12, 0.10, 0.82, 0.78];   % wider, no colorbar
     drawnow;
     out = fullfile(fileparts(b92_csv), 'exp6_b92_mutual_info_v5.png');
-    exportgraphics(fig, out, 'Resolution', 300, 'Padding', 'loose');
+    exportgraphics(fig, out, 'Resolution', 300, 'Padding', 'tight');
     add_white_border(out, BORDER_PX);
     rotate3d(fig, 'on');
     fprintf('Saved: %s\n', out);
@@ -288,7 +288,7 @@ else
     cb.Label.String = 'Secure Key Rate (bits/100 qubits)'; cb.Label.FontName = FONT; cb.Label.FontSize = SZ_LABEL;
     zlim(ax, ZLIM_B92_SKR); clim(ax, ZLIM_B92_SKR);
     cb.Ticks = linspace(ZLIM_B92_SKR(1), ZLIM_B92_SKR(2), 5);
-    xlabel(ax, 'Eve Interception Rate (%)',          'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
+    xlabel(ax, {'Eve Interception', 'Rate (%)'},          'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
     ylabel(ax, 'Noise Strength (%)',                 'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
     zlabel(ax, 'Secure Key Rate (bits/100 qubits)',    'FontName', FONT, 'FontSize', SZ_LABEL, 'FontWeight', 'bold');
     title(ax, {'B92 Protocol - Depolarising Channel - Secure Key Rate Surface', ...
@@ -299,7 +299,7 @@ else
     ax.Position = AX_POS; cb.Position = CB_POS;
     drawnow;
     out = fullfile(fileparts(b92_csv), 'exp6_b92_skr_v5.png');
-    exportgraphics(fig, out, 'Resolution', 300, 'Padding', 'loose');
+    exportgraphics(fig, out, 'Resolution', 300, 'Padding', 'tight');
     add_white_border(out, BORDER_PX);
     rotate3d(fig, 'on');
     fprintf('Saved: %s\n', out);

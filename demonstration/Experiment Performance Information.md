@@ -100,7 +100,14 @@ I redeveloped the processing logic to enable multicore processing for the v.2 sy
 
       * 2 surfaces on the same plot, one for Alice and Bob MI, and one for Alice and Eve MI, surfaces should intercept, and yield the point at which a Secure key cannot be generated, informing the next surface plot of SKR
     * Trial 1 duration (big PC): 14:28, this generates 3 surfaces: QBER, Mutual Information, SKR, there are gaussian smoothed plots for each plot
-    * 
+  * V.5:   The chunky ones
+
+    * These plots will also generate 3 surfaces for QBER, mutual information, and secure key rate (SKR).
+    * Surface density has increased to xyz, approx. 1 hour runtime for each
+
+      * Trial 1 duration (big PC): 1:03:52, 2907 trial points, big boy
+
+
 
 
 
@@ -134,5 +141,6 @@ I redeveloped the processing logic to enable multicore processing for the v.2 sy
 
     * These plots will also generate 3 surfaces for QBER, mutual information, and secure key rate (SKR).
     * Surface density has increased to xyz, approx. 1 hour runtime for each
-    * 
+
+      * Trial 1 duration (big PC): 53:27, 2907 trial points, great success
 
