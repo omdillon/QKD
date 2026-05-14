@@ -61,3 +61,6 @@ skills/
 # NOTE: committed plots under results/ remain tracked; this rule only
 # prevents NEW result files from being accidentally staged.
 results/
+misc/
+
+font/
