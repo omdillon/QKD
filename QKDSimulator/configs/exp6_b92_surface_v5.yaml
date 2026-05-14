@@ -1,7 +1,4 @@
-# Exp 6 v.5 — B92 3D Surface (CSV export for MATLAB)
-# Higher resolution and reduced variance vs v4: 51x57 grid (was 31x41), 40 trials/point (was 20).
-# Runtime estimate: ~46-57 min (calibrated from v4 ~10-12.5 min/experiment baseline).
-# Output: results/sim runs v.6 - FINAL/exp6_b92_surface_v5/b92_surface_v5.csv
+# exp 6 v.5 
 mode: surface_sweep
 protocol: b92
 n_qubits: 500

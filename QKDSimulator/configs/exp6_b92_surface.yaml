@@ -1,7 +1,4 @@
-# Exp 6 — B92 3D Surface (CSV export for MATLAB)
-# Noise Strength x Eve Rate x QBER grid.
-# Identical grid to Exp 5 for cross-protocol comparability in MATLAB.
-# Output: results/exp6_b92_surface/b92_surface_qber.csv
+# exp 6 
 mode: surface_sweep
 protocol: b92
 n_qubits: 500

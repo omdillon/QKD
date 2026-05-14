@@ -1,8 +1,6 @@
-# Configuration Reference
+# config reference
 
-All config files use flat YAML (no nesting). Copy `template.yaml` and uncomment the parameters you need.
-
-## Modes
+## modes
 
 | Mode | Description |
 |------|-------------|
@@ -11,29 +9,28 @@ All config files use flat YAML (no nesting). Copy `template.yaml` and uncomment 
 | `eve_sweep` | Sweep Eve interception rate |
 | `protocol_comparison` | Same noise sweep across BB84/B92/E91 |
 
-## Parameters
+## params
 
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `mode` | string | `single` | Execution mode (required) |
-| `protocol` | string | `bb84` | Protocol: `bb84`, `b92`, `e91` |
-| `protocols` | list | — | Protocol list for `protocol_comparison` mode |
-| `n_qubits` | int | `256` | Qubits per trial |
-| `n_trials` | int | `30` | Independent trials per parameter point |
-| `noise_type` | string | `none` | Noise model (see below) |
-| `noise_strength` | float | `0.0` | Fixed noise strength (single mode) |
-| `noise_min` | float | `0.0` | Sweep start |
-| `noise_max` | float | `0.30` | Sweep end |
-| `noise_steps` | int | `21` | Number of sweep points |
-| `eve_rate` | float | `null` | Eve interception rate (null = no Eve) |
-| `eve_min` | float | `0.0` | Eve sweep start |
-| `eve_max` | float | `1.0` | Eve sweep end |
-| `eve_steps` | int | `11` | Eve sweep points |
-| `e91_channel_topology` | string | `both` | `both` or `bob` (E91 only) |
-| `output_dir` | string | `./results` | Plot output directory |
-| `save_plots` | bool | `true` | Save plots to disk |
-| `show_plots` | bool | `false` | Display plots interactively |
+| key | type | default | description |
+| `mode` | string | `single` | execution mode |
+| `protocol` | string | `bb84` | protocol: `bb84`, `b92`, `e91` |
+| `protocols` | list | - | protocol list for `protocol_comparison` mode |
+| `n_qubits` | int | `256` | qubits per trial |
+| `n_trials` | int | `30` | independent trials per parameter point |
+| `noise_type` | string | `none` | noise model |
+| `noise_strength` | float | `0.0` | fixed noise strength |
+| `noise_min` | float | `0.0` | sweep start |
+| `noise_max` | float | `0.30` | sweep end |
+| `noise_steps` | int | `21` | number of sweep points |
+| `eve_rate` | float | `null` (null = no ve) | eve interception rate |
+| `eve_min` | float | `0.0` | eve sweep start |
+| `eve_max` | float | `1.0` | eve sweep end |
+| `eve_steps` | int | `11` | eve sweep points |
+| `e91_channel_topology` | string | `both` | `both` or `bob` (enables attack selection on each arm of the EPR pair) |
+| `output_dir` | string | `./results` | output directory |
+| `save_plots` | bool | `true` | save plots |
+| `show_plots` | bool | `false` | display plots interactively |
 
-## Noise Types
+## noise Types
 
 `none`, `depolarizing`, `bitflip`, `phaseflip`, `amplitude_damping`, `phase_damping`

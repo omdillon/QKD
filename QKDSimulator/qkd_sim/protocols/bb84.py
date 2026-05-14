@@ -1,32 +1,14 @@
-"""BB84 protocol. The identity gate (qc.id) marks where channel noise is applied."""
+"""BB84 protocol"""
 
-from dataclasses import dataclass
-from typing import Optional, List
 import numpy as np
 from qiskit import QuantumCircuit
-from qiskit_aer import AerSimulator
 
 from ..base import QKDProtocol, QKDResult
-from ..eve import EveInterceptor
-
-
-@dataclass
-class BB84Result(QKDResult):
-    alice_bases: np.ndarray = None
-    bob_bases: np.ndarray = None
-
-    def get_basis_matrix(self) -> np.ndarray:
-        """2x2 count matrix: [0,0]=ZZ  [0,1]=ZX  [1,0]=XZ  [1,1]=XX"""
-        matrix = np.zeros((2, 2), dtype=int)
-        for a_basis, b_basis in zip(self.alice_bases, self.bob_bases):
-            matrix[a_basis, b_basis] += 1
-        return matrix
 
 
 class BB84Protocol(QKDProtocol):
 
-    def __init__(self, n_qubits: int, backend: AerSimulator,
-                 eve: Optional[EveInterceptor] = None):
+    def __init__(self, n_qubits: int, backend, eve=None):
         super().__init__(n_qubits, backend, eve)
         self._alice_bits = None
         self._alice_bases = None
@@ -35,18 +17,18 @@ class BB84Protocol(QKDProtocol):
         self._eve_intercepted = None
 
     @classmethod
-    def protocol_name(cls) -> str:
+    def protocol_name(cls):
         return "BB84"
 
     @staticmethod
-    def theoretical_qber(noise_type: str, strengths: np.ndarray) -> Optional[np.ndarray]:
+    def theoretical_qber(noise_type, strengths):
         p = np.asarray(strengths, dtype=float)
 
         if noise_type == 'depolarizing':
             return p / 2.0
         return None
 
-    def run(self) -> BB84Result:
+    def run(self):
         circuits = self._alice_prepare()
 
         if self.eve is not None:
@@ -55,37 +37,41 @@ class BB84Protocol(QKDProtocol):
         self._bob_measure(circuits)
         return self._post_process()
 
-    def _alice_prepare(self) -> List[QuantumCircuit]:
+    def _alice_prepare(self):
         self._alice_bits = np.random.randint(0, 2, size=self.n_qubits)
         self._alice_bases = np.random.randint(0, 2, size=self.n_qubits)
 
         circuits = []
         for i in range(self.n_qubits):
             qc = QuantumCircuit(1, 1)
+            # bit=1: X puts qubit in |1>; basis=1: H rotates to diagonal basis {|+>,|->}
             if self._alice_bits[i] == 1:
                 qc.x(0)
             if self._alice_bases[i] == 1:
                 qc.h(0)
-            qc.id(0)  # channel marker
+            qc.id(0)  # id is a no-op; noise model attaches depolarising error to this gate to model the quantum channel
             circuits.append(qc)
 
         return circuits
 
-    def _bob_measure(self, circuits: List[QuantumCircuit]) -> None:
+    def _bob_measure(self, circuits):
         self._bob_bases = np.random.randint(0, 2, size=self.n_qubits)
         self._bob_results = np.zeros(self.n_qubits, dtype=int)
 
         for i, qc in enumerate(circuits):
+            # basis=1: H rotates diagonal basis back to computational before measuring
             if self._bob_bases[i] == 1:
                 qc.h(0)
             qc.measure(0, 0)
 
+        # shots=1: each qubit is a single physical transmission; memory=True returns the raw bit, not a count histogram
         job = self.backend.run(circuits, shots=1, memory=True)
         result = job.result()
         for i in range(len(circuits)):
             self._bob_results[i] = int(result.get_memory(i)[0])
 
-    def _post_process(self) -> BB84Result:
+    def _post_process(self):
+        # only matching bases give a deterministic outcome; mismatched bases discard that qubit
         matching_mask = self._alice_bases == self._bob_bases
         sifted_indices = np.where(matching_mask)[0]
         sifted_key_alice = self._alice_bits[matching_mask]
@@ -96,11 +82,12 @@ class BB84Protocol(QKDProtocol):
             errors = np.sum(sifted_key_alice != sifted_key_bob)
             qber = errors / sifted_length
         else:
+            # guard: zero sifted bits means no key, QBER undefined - treated as 0 to avoid division by zero
             qber = 0.0
 
         key_rate = sifted_length / self.n_qubits
 
-        return BB84Result(
+        return QKDResult(
             protocol_name="BB84",
             n_qubits=self.n_qubits,
             alice_bits=self._alice_bits.copy(),
@@ -111,6 +98,4 @@ class BB84Protocol(QKDProtocol):
             qber=qber,
             key_rate=key_rate,
             eve_intercepted=self._eve_intercepted,
-            alice_bases=self._alice_bases.copy(),
-            bob_bases=self._bob_bases.copy(),
         )

@@ -1,6 +1,4 @@
-# Exp 4 — E91 Entanglement Mechanics
-# Noise vs. S-parameter and QBER twin-axis plot.
-# Static thresholds: Tsirelson bound |S|=2sqrt(2) and classical bound |S|=2.
+# exp 4
 mode: sweep
 protocol: e91
 n_qubits: 1000

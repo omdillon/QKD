@@ -1,6 +1,4 @@
-# Exp 2 — Noise Resilience
-# Secure key rate vs depolarising noise for BB84, B92, E91 overlaid on one plot.
-# Also generates QBER and mutual information overlays.
+# exp 2
 mode: protocol_comparison
 protocols:
   - bb84

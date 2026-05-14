@@ -1,25 +1,13 @@
-"""B92 protocol. The identity gate (qc.id) marks where channel noise is applied."""
+"""B92 protocol"""
 
-from dataclasses import dataclass
-from typing import Optional, List
 import numpy as np
 from qiskit import QuantumCircuit
-from qiskit_aer import AerSimulator
-
 from ..base import QKDProtocol, QKDResult
-from ..eve import EveInterceptor
-
-
-@dataclass
-class B92Result(QKDResult):
-    bob_bases: np.ndarray = None
-    conclusive_mask: np.ndarray = None
 
 
 class B92Protocol(QKDProtocol):
 
-    def __init__(self, n_qubits: int, backend: AerSimulator,
-                 eve: Optional[EveInterceptor] = None):
+    def __init__(self, n_qubits: int, backend, eve=None):
         super().__init__(n_qubits, backend, eve)
         self._alice_bits = None
         self._bob_bases = None
@@ -27,22 +15,22 @@ class B92Protocol(QKDProtocol):
         self._eve_intercepted = None
 
     @classmethod
-    def protocol_name(cls) -> str:
+    def protocol_name(cls):
         return "B92"
 
     @classmethod
-    def theoretical_sifting_rate(cls) -> float:
-        return 0.25
+    def theoretical_sifting_rate(cls):
+        return 0.25  # Bob concludes ~50% per basis * 2 bases / (2 bases * 2) = 0.25; matches Bennett 1992 expected yield
 
     @staticmethod
-    def theoretical_qber(noise_type: str, strengths: np.ndarray) -> Optional[np.ndarray]:
-        """B92 QBER: noise creates spurious outcome-1 events, giving p/(1+p)."""
+    def theoretical_qber(noise_type, strengths):
+        # B92 QBER under depolarising: p/(1+p); differs from BB84's p/2 due to the two-state encoding
         if noise_type == 'depolarizing':
             p = np.asarray(strengths, dtype=float)
             return p / (1.0 + p)
         return None
 
-    def run(self) -> B92Result:
+    def run(self):
         circuits = self._alice_prepare()
 
         if self.eve is not None:
@@ -51,23 +39,25 @@ class B92Protocol(QKDProtocol):
         self._bob_measure(circuits)
         return self._post_process()
 
-    def _alice_prepare(self) -> List[QuantumCircuit]:
+    def _alice_prepare(self):
         self._alice_bits = np.random.randint(0, 2, size=self.n_qubits)
 
         circuits = []
         for i in range(self.n_qubits):
             qc = QuantumCircuit(1, 1)
+            # B92 uses only two non-orthogonal states: bit=0 sends |0>, bit=1 sends |+>; no X gate needed
             if self._alice_bits[i] == 1:
                 qc.h(0)
-            qc.id(0)  # channel marker
+            qc.id(0)  # id is a no-op; noise model attaches depolarising error here to simulate the channel
             circuits.append(qc)
 
         return circuits
 
-    def _bob_measure(self, circuits: List[QuantumCircuit]) -> None:
+    def _bob_measure(self, circuits):
         self._bob_bases = np.random.randint(0, 2, size=self.n_qubits)
         self._bob_results = np.zeros(self.n_qubits, dtype=int)
 
+        # Bob applies a random basis to attempt to distinguish Alice's two states
         for i, qc in enumerate(circuits):
             if self._bob_bases[i] == 1:
                 qc.h(0)
@@ -78,11 +68,13 @@ class B92Protocol(QKDProtocol):
         for i in range(len(circuits)):
             self._bob_results[i] = int(result.get_memory(i)[0])
 
-    def _post_process(self) -> B92Result:
+    def _post_process(self):
+        # Bob gets a conclusive outcome only when he measures |1>; measuring |0> is ambiguous between Alice's two states
         conclusive_mask = (self._bob_results == 1)
         sifted_indices = np.where(conclusive_mask)[0]
 
         sifted_key_alice = self._alice_bits[conclusive_mask]
+        # when Bob measures |1> in basis b, Alice's bit is inferred as (1 - b); derived from the B92 state table
         sifted_key_bob = 1 - self._bob_bases[conclusive_mask]
 
         sifted_length = len(sifted_key_alice)
@@ -94,7 +86,7 @@ class B92Protocol(QKDProtocol):
 
         key_rate = sifted_length / self.n_qubits
 
-        return B92Result(
+        return QKDResult(
             protocol_name="B92",
             n_qubits=self.n_qubits,
             alice_bits=self._alice_bits.copy(),
@@ -105,6 +97,4 @@ class B92Protocol(QKDProtocol):
             qber=qber,
             key_rate=key_rate,
             eve_intercepted=self._eve_intercepted,
-            bob_bases=self._bob_bases.copy(),
-            conclusive_mask=conclusive_mask,
         )

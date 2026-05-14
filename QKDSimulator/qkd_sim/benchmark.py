@@ -1,9 +1,9 @@
-"""Benchmarking tools for QKD protocol simulation."""
+"""benchmarking tools the simulation"""
 
 import os
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
-from typing import List, Optional, Dict, Any, Type
+from typing import Optional
 import numpy as np
 from tqdm import tqdm
 
@@ -35,30 +35,34 @@ class BenchmarkData:
 @dataclass
 class SurfaceBenchmarkData:
     protocol_name: str
-    noise_strengths: np.ndarray   # shape (S,)
-    eve_rates: np.ndarray          # shape (E,)
-    qber_mean: np.ndarray          # shape (S, E)
-    qber_std: np.ndarray           # shape (S, E)
+    noise_strengths: np.ndarray # strucure: (S,)
+    eve_rates: np.ndarray # strucure: (E,)
+    qber_mean: np.ndarray # strucure: shape (S, E)
+    qber_std: np.ndarray # strucure: (S, E)
     n_trials: int
     n_qubits: int
     noise_type: str
-    iab_mean: Optional[np.ndarray] = None   # shape (S, E) - I(A;B) per qubit
-    iae_mean: Optional[np.ndarray] = None   # shape (S, E) - I(A;E) per qubit
-    skr_mean: Optional[np.ndarray] = None   # shape (S, E) - secure key rate per qubit
+    iab_mean: Optional[np.ndarray] = None   # strucure: (S, E) - I(A;B) per qubit
+    iae_mean: Optional[np.ndarray] = None   # strucure: (S, E) - I(A;E) per qubit
+    skr_mean: Optional[np.ndarray] = None   # strucure: (S, E) - SKR per qubit
 
+
+# needed to be module-level for the parallel core execution - PicklingError when inside the class
+# windows multiprocessing couldnt pickle class methods
 
 def _surface_cell_worker(args):
-    # Module-level for picklability under Windows spawn.
+    # runs one (noise_strength, eve_rate) combination for n_trials -> returns QBER list
     protocol_class, noise_type, strength, rate, n_trials, n_qubits = args
     backend = create_backend(noise_type, strength)
     eve = EveInterceptor(rate) if rate > 0 else None
-    return [
+    return [ 
         protocol_class(n_qubits=n_qubits, backend=backend, eve=eve).run().qber
         for _ in range(n_trials)
     ]
 
 
 def _surface_cell_worker_v4(args):
+    # same as above but also collects mutual info and SKR per trial for the v4/v5 surface plots
     protocol_class, noise_type, strength, rate, n_trials, n_qubits = args
     backend = create_backend(noise_type, strength)
     eve = EveInterceptor(rate) if rate > 0 else None
@@ -73,14 +77,14 @@ class BenchmarkRunner:
 
     def run_noise_sweep(
         self,
-        protocol_class: Type[QKDProtocol],
+        protocol_class,
         noise_type: str,
         strengths: np.ndarray,
         n_trials: int = 30,
         n_qubits: int = 100,
         with_eve: bool = False,
         eve_rate: float = 0.5,
-        protocol_kwargs: Optional[Dict[str, Any]] = None,
+        protocol_kwargs: Optional[dict] = None,
     ) -> BenchmarkData:
         strengths = np.asarray(strengths)
         n_strengths = len(strengths)
@@ -98,10 +102,7 @@ class BenchmarkRunner:
             eve = EveInterceptor(eve_rate) if with_eve else None
 
             for j in range(n_trials):
-                protocol = protocol_class(
-                    n_qubits=n_qubits, backend=backend, eve=eve,
-                    **extra_kwargs,
-                )
+                protocol = protocol_class( n_qubits=n_qubits, backend=backend, eve=eve, **extra_kwargs)
                 result = protocol.run()
 
                 qber_results[i, j] = result.qber
@@ -139,13 +140,13 @@ class BenchmarkRunner:
 
     def run_eve_sweep(
         self,
-        protocol_class: Type[QKDProtocol],
+        protocol_class,
         eve_rates: np.ndarray,
         n_trials: int = 30,
         n_qubits: int = 100,
         noise_type: str = 'none',
         noise_strength: float = 0.0,
-        protocol_kwargs: Optional[Dict[str, Any]] = None,
+        protocol_kwargs: Optional[dict] = None,
     ) -> BenchmarkData:
         eve_rates = np.asarray(eve_rates)
         n_rates = len(eve_rates)
@@ -159,15 +160,12 @@ class BenchmarkRunner:
 
         backend = create_backend(noise_type, noise_strength)
 
-        desc = f"{protocol_class.protocol_name()} Eve sweep"
+        desc = f"{protocol_class.protocol_name()} eve sweep"
         for i, rate in enumerate(tqdm(eve_rates, desc=desc, unit="pt")):
             eve = EveInterceptor(rate) if rate > 0 else None
 
             for j in range(n_trials):
-                protocol = protocol_class(
-                    n_qubits=n_qubits, backend=backend,
-                    eve=eve, **extra_kwargs,
-                )
+                protocol = protocol_class( n_qubits=n_qubits, backend=backend, eve=eve, **extra_kwargs)
                 result = protocol.run()
 
                 qber_results[i, j] = result.qber
@@ -205,15 +203,15 @@ class BenchmarkRunner:
 
     def run_protocol_comparison(
         self,
-        protocol_classes: List[Type[QKDProtocol]],
+        protocol_classes: list,
         noise_type: str,
         strengths: np.ndarray,
         n_trials: int = 30,
         n_qubits: int = 100,
-        protocol_kwargs: Optional[Dict[str, Dict[str, Any]]] = None,
-    ) -> Dict[str, BenchmarkData]:
+        protocol_kwargs: Optional[dict] = None,
+    ) -> dict:
         per_proto_kwargs = protocol_kwargs or {}
-        results: Dict[str, BenchmarkData] = {}
+        results = {}
 
         for proto_cls in protocol_classes:
             name = proto_cls.protocol_name()
@@ -238,7 +236,7 @@ class BenchmarkRunner:
 
     def run_surface_sweep(
         self,
-        protocol_class: Type[QKDProtocol],
+        protocol_class,
         noise_type: str,
         strengths: np.ndarray,
         eve_rates: np.ndarray,
@@ -250,14 +248,16 @@ class BenchmarkRunner:
         n_s, n_e = len(strengths), len(eve_rates)
         qber_results = np.zeros((n_s, n_e, n_trials))
 
+        # task list - noise is outer loop, eve is inner lopp, to match (n_s, n_e) structure of the results
         tasks = [
             (protocol_class, noise_type, float(s), float(e), n_trials, n_qubits)
             for s in strengths for e in eve_rates
         ]
         desc = f"{protocol_class.protocol_name()} surface sweep"
+        # processes not threads - tried threading first - no actual speedup occured
         with ProcessPoolExecutor(max_workers=os.cpu_count()) as pool:
-            flat = list(tqdm(pool.map(_surface_cell_worker, tasks),
-                             total=len(tasks), desc=desc, unit="cell"))
+            flat = list(tqdm(pool.map(_surface_cell_worker, tasks), total=len(tasks), desc=desc, unit="cell"))
+        # pool.map preserves order so divmod(idx, n_e) gives back (noise_idx, eve_idx)
         for idx, qbers in enumerate(flat):
             i, j = divmod(idx, n_e)
             qber_results[i, j, :] = qbers
@@ -275,7 +275,7 @@ class BenchmarkRunner:
 
     def run_surface_sweep_v4(
         self,
-        protocol_class: Type[QKDProtocol],
+        protocol_class,
         noise_type: str,
         strengths: np.ndarray,
         eve_rates: np.ndarray,
@@ -291,18 +291,21 @@ class BenchmarkRunner:
         iae_results  = np.zeros((n_s, n_e, n_trials))
         skr_results  = np.zeros((n_s, n_e, n_trials))
 
+        # same flat task list approach as run_surface_sweep 
         tasks = [
             (protocol_class, noise_type, float(s), float(e), n_trials, n_qubits)
             for s in strengths for e in eve_rates
         ]
         desc = f"{protocol_class.protocol_name()} surface sweep v4"
+        # processes for GIL bypass, same as above
         with ProcessPoolExecutor(max_workers=os.cpu_count()) as pool:
-            flat = list(tqdm(pool.map(_surface_cell_worker_v4, tasks),
-                             total=len(tasks), desc=desc, unit="cell"))
+            flat = list(tqdm(pool.map(_surface_cell_worker_v4, tasks), total=len(tasks), desc=desc, unit="cell"))
 
+        # each flat element is n_trials 4-tuples; divmod recovers (i, j) grid positioning
         for idx, cell in enumerate(flat):
             i, j = divmod(idx, n_e)
             for k, (q, iab, iae, skr) in enumerate(cell):
+                # restructuing the 3d arrays - indexed by (noise_idx, eve_idx, trial_idx)
                 qber_results[i, j, k] = q
                 iab_results[i, j, k]  = iab
                 iae_results[i, j, k]  = iae

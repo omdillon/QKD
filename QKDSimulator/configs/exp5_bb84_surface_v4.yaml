@@ -1,6 +1,4 @@
-# Exp 5 v.4 — BB84 3D Surface (CSV export for MATLAB)
-# Identical parameter ranges to v.3; v4 CSV adds I(A;B), I(A;E), and SKR columns.
-# Output: results/exp5_bb84_surface_v4/bb84_surface_v4.csv
+# exp 5 v.4 
 mode: surface_sweep
 protocol: bb84
 n_qubits: 500

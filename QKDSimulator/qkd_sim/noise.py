@@ -1,4 +1,4 @@
-"""Noise model factory. Noise is applied to the 'id' gate (channel marker)."""
+"""noise model instantiation"""
 
 from qiskit_aer import AerSimulator
 from qiskit_aer.noise import (
@@ -27,9 +27,7 @@ def create_backend(noise_type: str, strength: float = 0.0) -> AerSimulator:
 def _create_error(noise_type: str, strength: float):
     if noise_type == 'depolarizing':
         return depolarizing_error(strength, 1)
-    else:
-        raise ValueError(f"Unhandled noise type: {noise_type}")
 
 
 def get_noise_description(noise_type: str) -> str:
-    return _NOISE_DESCRIPTIONS.get(noise_type, f'Unknown ({noise_type})')
+    return _NOISE_DESCRIPTIONS.get(noise_type, 'undefined noise type')

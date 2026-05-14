@@ -1,4 +1,4 @@
-"""Intercept-resend eavesdropper. At full interception, detectable ~25% QBER."""
+"""eavesdropper module - no e91 eve"""
 
 from typing import List, Tuple
 import numpy as np
@@ -34,12 +34,10 @@ class EveInterceptor:
             job = self._eve_backend.run(measure_circuits, shots=1, memory=True)
             result = job.result()
 
-            for idx, (orig_i, eve_basis) in enumerate(
-                zip(intercepted_indices, eve_bases)
-            ):
+            for idx, (orig_i, eve_basis) in enumerate( zip(intercepted_indices, eve_bases)):
                 eve_result = int(result.get_memory(idx)[0])
-                output_circuits[orig_i] = self._prepare_replacement(
-                    eve_result, eve_basis)
+                # adding back in the new resend state post intercept
+                output_circuits[orig_i] = self._prepare_replacement(eve_result, eve_basis)
 
         return output_circuits, np.array(intercepted_indices, dtype=int)
 
@@ -67,10 +65,11 @@ class EveInterceptor:
 
             for idx, orig_i in enumerate(intercepted_indices):
                 eve_result = int(result.get_memory(idx)[0])
-                # Re-prepare using B92 encoding: 0 -> |0>, 1 -> |+>
+                # reprepare using B92 encoding: 0 -> |0>, 1 -> |+>
                 new_qc = QuantumCircuit(1, 1)
                 if eve_result == 1:
                     new_qc.h(0)
+                # id; noise model attaches depolarising error here to simulate the Eve-to-Bob channel leg
                 new_qc.id(0)
                 output_circuits[orig_i] = new_qc
 
@@ -82,5 +81,6 @@ class EveInterceptor:
             new_qc.x(0)
         if basis == 1:
             new_qc.h(0)
-        new_qc.id(0)  # channel marker for Eve->Bob noise
+        # id; noise model attaches depolarising error here to simulate the Eve-to-Bob channel leg
+        new_qc.id(0)
         return new_qc

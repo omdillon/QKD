@@ -1,21 +1,16 @@
-"""
-YAML configuration loader for QKD simulations.
+"""YAML file config loader"""
 
-Reads a flat YAML file into a SimConfig dataclass.
-"""
-
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import List, Optional
 import yaml
 
 
-_VALID_MODES = {'single', 'sweep', 'eve_sweep', 'protocol_comparison',
-                'eve_comparison', 'surface_sweep'}
+_VALID_MODES = {'single', 'sweep', 'eve_sweep', 'protocol_comparison', 'eve_comparison', 'surface_sweep'}
 
 
 @dataclass
 class SimConfig:
-    """Simulation configuration loaded from YAML."""
+    """sim configuration loaded from YAML file"""
     mode: str = "single"
     protocol: str = "bb84"
     protocols: Optional[List[str]] = None
@@ -30,27 +25,15 @@ class SimConfig:
     eve_min: float = 0.0
     eve_max: float = 1.0
     eve_steps: int = 11
-    e91_channel_topology: str = "both"
+    e91_channel_topology: str = "both" # e91 noise model topology
     output_dir: str = "./results"
     save_plots: bool = True
     show_plots: bool = False
 
 
 def load_config(path: str) -> SimConfig:
-    """Read a YAML file and return a SimConfig."""
+    """read YAML file and return a SimConfig instance"""
     with open(path, 'r') as f:
         raw = yaml.safe_load(f)
-
-    if raw is None:
-        raise ValueError(f"Empty config file: {path}")
-
-    config = SimConfig(**{k: v for k, v in raw.items()
-                          if hasattr(SimConfig, k)})
-
-    if config.mode not in _VALID_MODES:
-        raise ValueError(
-            f"Invalid mode '{config.mode}'. "
-            f"Must be one of: {sorted(_VALID_MODES)}"
-        )
-
+    config = SimConfig(**{k: v for k, v in raw.items() if hasattr(SimConfig, k)})
     return config

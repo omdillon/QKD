@@ -1,9 +1,4 @@
-"""QKD simulation entry point.
-
-Usage:
-    python -m qkd_sim <config.yaml>
-    python -m qkd_sim <config.yaml> --show-plots
-"""
+""" sim start point, python -m qkd_sim <config.yaml> """
 
 import argparse
 from pathlib import Path
@@ -17,6 +12,7 @@ from .plotter import QKDPlotter
 from .protocols.bb84 import BB84Protocol
 from .protocols.b92 import B92Protocol
 from .protocols.e91 import E91Protocol
+import csv
 
 
 PROTOCOLS = {
@@ -25,32 +21,31 @@ PROTOCOLS = {
     'e91': E91Protocol,
 }
 
-
-# YAML stem -> (run-mode, QKDPlotter method name)
+# experiments...
 EXPERIMENT_PLOTTERS = {
-    'bb84_sweep':       ('sweep',               'plot_bb84_sweep'),
-    'bb84_eve':         ('eve_sweep',           'plot_bb84_eve'),
-    'bb84_noisy_eve':   ('eve_sweep',           'plot_bb84_noisy_eve'),
-    'b92_sweep':        ('sweep',               'plot_b92_sweep'),
-    'b92_eve':          ('eve_sweep',           'plot_b92_eve'),
-    'b92_noisy_eve':    ('eve_sweep',           'plot_b92_noisy_eve'),
-    'e91_sweep':        ('sweep',               'plot_e91_sweep'),
-    'noise_comparison':       ('protocol_comparison', 'plot_noise_comparison'),
-    'baseline':               ('protocol_comparison', 'plot_baseline_comparison'),
-    'exp1_baseline':          ('protocol_comparison', 'plot_baseline_comparison'),
-    'exp2_noise_resilience':  ('protocol_comparison', 'plot_noise_comparison'),
-    'exp3_eve_vulnerability': ('eve_comparison',      'plot_eve_vulnerability'),
-    'exp4_e91_mechanics':     ('sweep',               'plot_e91_sweep'),
-    'exp5_bb84_surface':      ('surface_sweep',       '__csv__'),
-    'exp6_b92_surface':       ('surface_sweep',       '__csv__'),
-    'exp5_bb84_surface_v2':   ('surface_sweep',       '__csv__'),
-    'exp6_b92_surface_v2':    ('surface_sweep',       '__csv__'),
-    'exp5_bb84_surface_v3':   ('surface_sweep',       '__csv__'),
-    'exp6_b92_surface_v3':    ('surface_sweep',       '__csv__'),
-    'exp5_bb84_surface_v4':   ('surface_sweep',       '__csv_v4__'),
-    'exp6_b92_surface_v4':    ('surface_sweep',       '__csv_v4__'),
-    'exp5_bb84_surface_v5':   ('surface_sweep',       '__csv_v5__'),
-    'exp6_b92_surface_v5':    ('surface_sweep',       '__csv_v5__'),
+    'bb84_sweep': ('sweep', 'plot_bb84_sweep'),
+    'bb84_eve': ('eve_sweep','plot_bb84_eve'),
+    'bb84_noisy_eve': ('eve_sweep', 'plot_bb84_noisy_eve'),
+    'b92_sweep': ('sweep', 'plot_b92_sweep'),
+    'b92_eve': ('eve_sweep', 'plot_b92_eve'),
+    'b92_noisy_eve':('eve_sweep', 'plot_b92_noisy_eve'),
+    'e91_sweep': ('sweep', 'plot_e91_sweep'),
+    'noise_comparison': ('protocol_comparison', 'plot_noise_comparison'),
+    'baseline': ('protocol_comparison', 'plot_baseline_comparison'),
+    'exp1_baseline': ('protocol_comparison', 'plot_baseline_comparison'),
+    'exp2_noise_resilience': ('protocol_comparison', 'plot_noise_comparison'),
+    'exp3_eve_vulnerability': ('eve_comparison','plot_eve_vulnerability'),
+    'exp4_e91_mechanics': ('sweep','plot_e91_sweep'),
+    'exp5_bb84_surface': ('surface_sweep','__csv__'),
+    'exp6_b92_surface': ('surface_sweep','__csv__'),
+    'exp5_bb84_surface_v2': ('surface_sweep','__csv__'),
+    'exp6_b92_surface_v2': ('surface_sweep','__csv__'),
+    'exp5_bb84_surface_v3': ('surface_sweep','__csv__'),
+    'exp6_b92_surface_v3': ('surface_sweep','__csv__'),
+    'exp5_bb84_surface_v4': ('surface_sweep','__csv_v4__'),
+    'exp6_b92_surface_v4': ('surface_sweep','__csv_v4__'),
+    'exp5_bb84_surface_v5': ('surface_sweep','__csv_v5__'),
+    'exp6_b92_surface_v5': ('surface_sweep','__csv_v5__'),
 }
 
 
@@ -70,8 +65,7 @@ def run_single(config):
     eve = EveInterceptor(config.eve_rate) if config.eve_rate is not None else None
 
     protocol = protocol_class(
-        n_qubits=config.n_qubits, backend=backend, eve=eve,
-        **_e91_kwargs(config, config.protocol),
+        n_qubits=config.n_qubits, backend=backend, eve=eve, **_e91_kwargs(config, config.protocol),
     )
     result = protocol.run()
 
@@ -81,8 +75,7 @@ def run_single(config):
           f"I(A;B): {result.mutual_information:.4f}")
 
     if hasattr(result, 's_value'):
-        print(f"  |S| (CHSH): {result.abs_s:.4f} "
-              f"(violation: {'YES' if result.chsh_violation else 'NO'})")
+        print(f"  |S| (CHSH): {result.abs_s:.4f} ", f"(violation: {'YES' if result.chsh_violation else 'NO'})")
 
 
 def run_sweep(config, plot_method_name):
@@ -107,8 +100,7 @@ def run_sweep(config, plot_method_name):
     plotter = QKDPlotter()
     method = getattr(plotter, plot_method_name)
     if config.protocol.lower() == 'e91':
-        method(data, output_dir=_output_dir(config), show=config.show_plots,
-               channel_topology=config.e91_channel_topology)
+        method(data, output_dir=_output_dir(config), show=config.show_plots, channel_topology=config.e91_channel_topology)
     else:
         method(data, output_dir=_output_dir(config), show=config.show_plots)
 
@@ -134,8 +126,7 @@ def run_eve_sweep(config, plot_method_name):
     plotter = QKDPlotter()
     method = getattr(plotter, plot_method_name)
     if 'noisy_eve' in plot_method_name:
-        method(data, noise_strength=config.noise_strength,
-               output_dir=_output_dir(config), show=config.show_plots)
+        method(data, noise_strength=config.noise_strength, output_dir=_output_dir(config), show=config.show_plots)
     else:
         method(data, output_dir=_output_dir(config), show=config.show_plots)
 
@@ -194,8 +185,6 @@ def run_eve_comparison(config, plot_method_name):
 
 
 def run_surface_sweep_v4(config):
-    import csv
-
     protocol_class = PROTOCOLS[config.protocol]
     strengths = np.linspace(config.noise_min, config.noise_max, config.noise_steps)
     eve_rates = np.linspace(config.eve_min, config.eve_max, config.eve_steps)
@@ -216,8 +205,7 @@ def run_surface_sweep_v4(config):
 
     with open(csv_path, 'w', newline='') as f:
         writer = csv.writer(f)
-        writer.writerow(['noise_strength', 'eve_rate', 'qber_mean',
-                         'iab_mean', 'iae_mean', 'skr_mean'])
+        writer.writerow(['noise_strength', 'eve_rate', 'qber_mean', 'iab_mean', 'iae_mean', 'skr_mean'])
         for i, noise in enumerate(surface.noise_strengths):
             for j, eve in enumerate(surface.eve_rates):
                 writer.writerow([
@@ -228,12 +216,10 @@ def run_surface_sweep_v4(config):
                     f'{surface.skr_mean[i, j]:.6f}',
                 ])
 
-    print(f"  CSV saved: {csv_path}")
+    print(f"CSV saved: {csv_path}")
 
 
 def run_surface_sweep_v5(config):
-    import csv
-
     protocol_class = PROTOCOLS[config.protocol]
     strengths = np.linspace(config.noise_min, config.noise_max, config.noise_steps)
     eve_rates = np.linspace(config.eve_min, config.eve_max, config.eve_steps)
@@ -254,8 +240,7 @@ def run_surface_sweep_v5(config):
 
     with open(csv_path, 'w', newline='') as f:
         writer = csv.writer(f)
-        writer.writerow(['noise_strength', 'eve_rate', 'qber_mean',
-                         'iab_mean', 'iae_mean', 'skr_mean'])
+        writer.writerow(['noise_strength', 'eve_rate', 'qber_mean', 'iab_mean', 'iae_mean', 'skr_mean'])
         for i, noise in enumerate(surface.noise_strengths):
             for j, eve in enumerate(surface.eve_rates):
                 writer.writerow([
@@ -266,12 +251,10 @@ def run_surface_sweep_v5(config):
                     f'{surface.skr_mean[i, j]:.6f}',
                 ])
 
-    print(f"  CSV saved: {csv_path}")
+    print(f"CSV saved: {csv_path}")
 
 
 def run_surface_sweep(config):
-    import csv
-
     protocol_class = PROTOCOLS[config.protocol]
     strengths = np.linspace(config.noise_min, config.noise_max, config.noise_steps)
     eve_rates = np.linspace(config.eve_min, config.eve_max, config.eve_steps)
@@ -295,41 +278,34 @@ def run_surface_sweep(config):
         writer.writerow(['noise_strength', 'eve_rate', 'qber_mean'])
         for i, noise in enumerate(surface.noise_strengths):
             for j, eve in enumerate(surface.eve_rates):
-                writer.writerow([f'{noise:.4f}', f'{eve:.4f}',
-                                  f'{surface.qber_mean[i, j]:.6f}'])
+                writer.writerow([f'{noise:.4f}', f'{eve:.4f}', f'{surface.qber_mean[i, j]:.6f}'])
 
-    print(f"  CSV saved: {csv_path}")
+    print(f"CSV saved: {csv_path}")
 
 
 def main():
-    parser = argparse.ArgumentParser(description='QKD Simulation Platform')
+    parser = argparse.ArgumentParser(description='QKD Sim Platform')
     parser.add_argument('config_file', help='Path to YAML config file')
-    parser.add_argument('--show-plots', action='store_true', help='Display plots interactively')
+    parser.add_argument('--show-plots', action='store_true', help='Display plots')
     args = parser.parse_args()
 
     config = load_config(args.config_file)
     if args.show_plots:
         config.show_plots = True
 
-    print(f"  Mode: {config.mode} | Protocol: {config.protocol} | "
-          f"Qubits: {config.n_qubits} | Trials: {config.n_trials}")
+    print(f"Mode: {config.mode} | Protocol: {config.protocol} | ", f"Qubits: {config.n_qubits} | Trials: {config.n_trials}")
 
     if config.mode == 'single':
         run_single(config)
     else:
         stem = Path(args.config_file).stem
         if stem not in EXPERIMENT_PLOTTERS:
-            valid = ', '.join(sorted(EXPERIMENT_PLOTTERS.keys()))
-            raise ValueError(
-                f"Unknown experiment '{stem}'. Add it to EXPERIMENT_PLOTTERS "
-                f"in qkd_sim/__main__.py. Valid: {valid}"
-            )
+            print("no config found...")
+            return
         expected_mode, plot_method_name = EXPERIMENT_PLOTTERS[stem]
         if config.mode != expected_mode:
-            raise ValueError(
-                f"Config '{stem}' uses mode '{config.mode}' but experiment "
-                f"expects '{expected_mode}'"
-            )
+            print("no config found...")
+            return
         if config.mode == 'sweep':
             run_sweep(config, plot_method_name)
         elif config.mode == 'eve_sweep':
@@ -346,12 +322,11 @@ def main():
             else:
                 run_surface_sweep(config)
         else:
-            raise ValueError(f"Unhandled mode: {config.mode}")
+            print("no config found...")
+            return
 
     if config.save_plots:
-        print(f"  Plots saved to: {config.output_dir}/")
-    print("  Done.")
-
+        print(f"Plots saved to: {config.output_dir}/")
 
 if __name__ == '__main__':
     main()

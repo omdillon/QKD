@@ -1,8 +1,4 @@
-# Exp 5 v.3 — BB84 3D Surface (CSV export for MATLAB)
-# Noise range extended to 0.30 so QBER exceeds the 11% threshold on the noise axis.
-# Eve range kept at 0.60. zlim in MATLAB remains [0, 22%] (2x threshold).
-# Finer grid: 31 noise x 41 eve x 20 trials = 25,420 protocol runs.
-# Output: results/exp5_bb84_surface_v3/bb84_surface_qber.csv
+# exp 5 v.3 
 mode: surface_sweep
 protocol: bb84
 n_qubits: 500

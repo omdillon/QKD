@@ -1,6 +1,4 @@
-# Exp 6 v.4 — B92 3D Surface (CSV export for MATLAB)
-# Identical parameter ranges to v.3; v4 CSV adds I(A;B), I(A;E), and SKR columns.
-# Output: results/exp6_b92_surface_v4/b92_surface_v4.csv
+# exp 6 v.4
 mode: surface_sweep
 protocol: b92
 n_qubits: 500

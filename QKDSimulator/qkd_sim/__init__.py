@@ -1,7 +1,3 @@
-"""QKD simulation platform - BB84, B92, E91 benchmarking."""
-
-__version__ = "2.0.0"
-
 from .base import QKDProtocol, QKDResult
 from .noise import create_backend
 from .eve import EveInterceptor
